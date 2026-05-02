@@ -1,0 +1,26 @@
+[package]
+name = "learn-acquire-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+# cargo-fuzz requires nightly and the libfuzzer-sys dependency.
+# This crate is intentionally excluded from the main workspace resolver
+# (workspace = false) so stable builds are not affected.
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+learn-acquire = { path = ".." }
+camino = "1"
+
+# Suppress the workspace resolver for this sub-crate so it can use nightly
+# features without affecting `cargo build --workspace` on stable.
+[workspace]
+
+[[bin]]
+name = "parse_vtt"
+path = "fuzz_targets/parse_vtt.rs"
+test = false
+doc = false

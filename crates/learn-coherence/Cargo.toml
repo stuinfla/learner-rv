@@ -1,0 +1,16 @@
+[package]
+name = "learn-coherence"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "KB health and query-drift monitoring via ruvector-coherence spectral metrics."
+
+[dependencies]
+learn-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+ruvector-coherence = { path = "../../../ruvector/crates/ruvector-coherence", features = ["spectral"] }

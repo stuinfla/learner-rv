@@ -1,0 +1,23 @@
+[package]
+name = "learn-synth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Citation-grounded answer synthesis — Anthropic API or on-device ruvllm."
+
+[dependencies]
+learn-core.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+url.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+async-trait = "0.1"
+tokio.workspace = true
+dirs = "5.0"
+
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+ruvllm = { path = "../../../ruvector/crates/ruvllm", default-features = false, features = ["minimal", "async-runtime"] }

@@ -1,0 +1,36 @@
+[package]
+name = "learn-embed"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "ONNX embedding (BGE-large) and cross-encoder reranker for learn-rs."
+
+[dependencies]
+learn-core.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+camino.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ruvector-sona = { path = "../../../ruvector/crates/sona", default-features = false, features = ["serde-support"] }
+
+# ort 2.x — ONNX Runtime bindings. download-binaries fetches the ORT shared
+# library at build time so users need no system-wide install. ndarray feature
+# enables Tensor/Array2 interop. CoreML on Apple Silicon is auto-detected.
+ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "download-binaries", "ndarray", "tls-rustls"] }
+ndarray = "0.17"
+# tokenizers 0.21 — onig uses a C regex engine (requires a C compiler, which
+# the macOS Xcode toolchain provides). This is the default-features set.
+tokenizers = { version = "0.21", default-features = false, features = ["onig"] }
+# ureq 3.x — blocking HTTP client for model downloads (rustls TLS is the default)
+ureq = "3"
+# dirs 6.x — resolves platform cache directory (~/.cache on Linux/macOS)
+dirs = "6"
+# parking_lot is a transitive dep of ruvector-sona; we need it directly to
+# name the RwLock type in the adapter persistence helpers.
+parking_lot = "0.12"
+
+[dev-dependencies]
+tempfile = "3"

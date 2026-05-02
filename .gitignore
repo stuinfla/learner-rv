@@ -1,0 +1,12 @@
+/target
+**/*.rs.bk
+Cargo.lock.bak
+.DS_Store
+.idea/
+.vscode/
+*.rvf.tmp
+fixtures/cache/
+
+# The ruvector symlink lives as a sibling to this workspace (../ruvector -> RuVector_Clean).
+# It is outside this repo so git never tracks it. See BUILDING.md.
+target/

@@ -1,0 +1,13 @@
+WEBVTT
+Kind: captions
+Language: en
+
+00:00:00.000 --> 00:00:03.500
+Welcome to the learn-rs integration test fixture.
+
+00:00:03.500 --> 00:00:07.000
+This file contains three cues for hermetic testing.
+
+00:00:07.000 --> 00:00:10.000
+Each cue has a distinct start and end timestamp.
+

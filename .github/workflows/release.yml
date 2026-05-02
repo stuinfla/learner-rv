@@ -1,0 +1,331 @@
+name: Release
+
+# Phase 5 prep: cross-platform release builds for the `learn` binary.
+#
+# Priority order (Stuart's choice):
+#   1. aarch64-apple-darwin   (M-series Mac)   -- primary
+#   2. x86_64-apple-darwin    (Intel Mac)      -- secondary
+#   3. x86_64-unknown-linux-gnu                 -- best-effort
+#   4. aarch64-unknown-linux-gnu                -- best-effort (cross)
+#   5. x86_64-pc-windows-msvc                   -- best-effort (whisper-rs/metal not supported)
+#
+# Security note: this workflow does NOT consume any user-controllable event
+# data (issue titles, PR bodies, commit messages) inside run: blocks. The only
+# `workflow_dispatch` input (`reason`) is never referenced in shell. All
+# expansions are matrix values or repository-controlled metadata.
+#
+# IMPORTANT: the workspace path-depends on `~/RuVector_Clean/crates/*`. Those
+# crates are not available on a clean GitHub runner. Until RuVector_Clean is a
+# real (private) repo with a checkout token configured, the release build steps
+# are gated on the sibling directory existing and will be skipped cleanly with a
+# log message when it is absent. This keeps the workflow green on push and
+# lights up automatically once `secrets.RUVECTOR_TOKEN` + the source repo are
+# in place.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual release run (informational only; not used in build steps)"
+        required: false
+        default: "manual dispatch"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUST_TOOLCHAIN: "1.91.1"
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Single fmt + clippy gate. Runs once on macos-latest (cheaper than running
+  # on every matrix entry). Required by the matrix builds via `needs:`.
+  # -------------------------------------------------------------------------
+  fmt-clippy:
+    name: fmt + clippy gate
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout learn-rs
+        uses: actions/checkout@v4
+
+      - name: Checkout RuVector_Clean (sibling, optional)
+        id: ruvector
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          repository: ${{ github.repository_owner }}/RuVector_Clean
+          token: ${{ secrets.RUVECTOR_TOKEN }}
+          path: ../RuVector_Clean
+          ref: main
+
+      - name: Skip notice if RuVector missing
+        if: steps.ruvector.outcome != 'success'
+        run: |
+          echo "::warning::RuVector_Clean not available to this runner."
+          echo "::warning::Falling back to fmt-only check."
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo target (fmt-clippy)
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-target-fmt-clippy-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-fmt-clippy-
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        if: steps.ruvector.outcome == 'success'
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: clippy skipped notice
+        if: steps.ruvector.outcome != 'success'
+        run: echo "clippy skipped -- RuVector_Clean unavailable; fmt check ran above."
+
+  # -------------------------------------------------------------------------
+  # Release build matrix. Apple targets are required; Linux/Windows entries
+  # are flagged best-effort and won't fail the workflow.
+  # -------------------------------------------------------------------------
+  build:
+    name: Release build (${{ matrix.target }})
+    needs: fmt-clippy
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 1. M-series Mac -- primary.
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            os: macos
+            archive_ext: tar.gz
+            best_effort: false
+            use_cross: false
+
+          # 2. Intel Mac -- secondary.
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            os: macos
+            archive_ext: tar.gz
+            best_effort: false
+            use_cross: false
+
+          # 3. Linux x86_64 -- best-effort (Phase 5).
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            os: linux
+            archive_ext: tar.gz
+            best_effort: true
+            use_cross: false
+
+          # 4. Linux ARM64 -- best-effort (Phase 5), cross-compile via `cross`.
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-latest
+            os: linux
+            archive_ext: tar.gz
+            best_effort: true
+            use_cross: true
+
+          # 5. Windows -- best-effort (Phase 5). whisper-rs `metal` feature is
+          # Apple-only; this entry will fail until learn-asr feature gating is
+          # added in a future phase. NOT in M-series-first scope.
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            os: windows
+            archive_ext: zip
+            best_effort: true
+            use_cross: false
+
+    continue-on-error: ${{ matrix.best_effort }}
+
+    steps:
+      - name: Checkout learn-rs
+        uses: actions/checkout@v4
+
+      - name: Checkout RuVector_Clean (sibling)
+        id: ruvector
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          repository: ${{ github.repository_owner }}/RuVector_Clean
+          token: ${{ secrets.RUVECTOR_TOKEN }}
+          path: ../RuVector_Clean
+          ref: main
+
+      - name: Detect RuVector availability
+        id: have_ruvector
+        shell: bash
+        run: |
+          if [ -f "../RuVector_Clean/Cargo.toml" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "RuVector_Clean is available at ../RuVector_Clean"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::RuVector_Clean is NOT available -- release build for this target will be skipped."
+            echo "::warning::This is expected until secrets.RUVECTOR_TOKEN is configured and RuVector_Clean is a real repo."
+          fi
+
+      # ----- Platform deps ---------------------------------------------------
+
+      - name: Install Linux build deps
+        if: steps.have_ruvector.outputs.present == 'true' && matrix.os == 'linux' && matrix.use_cross != true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            cmake \
+            clang \
+            libclang-dev \
+            pkg-config \
+            libssl-dev
+
+      - name: Install Rust toolchain
+        if: steps.have_ruvector.outputs.present == 'true'
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
+
+      - name: Install cross (Linux ARM64 only)
+        if: steps.have_ruvector.outputs.present == 'true' && matrix.use_cross == true
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      # ----- Caches ----------------------------------------------------------
+
+      - name: Cache cargo registry
+        if: steps.have_ruvector.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-registry-
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo target
+        if: steps.have_ruvector.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-target-release-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-target-release-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-${{ matrix.target }}-cargo-target-release-
+
+      # ----- Build -----------------------------------------------------------
+
+      - name: cargo build --release (native)
+        if: steps.have_ruvector.outputs.present == 'true' && matrix.use_cross != true
+        shell: bash
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          cargo build --release --workspace --target "$BUILD_TARGET"
+
+      - name: cross build --release (cross-compile)
+        if: steps.have_ruvector.outputs.present == 'true' && matrix.use_cross == true
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+        run: cross build --release --workspace --target "$BUILD_TARGET"
+
+      # ----- Test ------------------------------------------------------------
+      # Skip cross-compiled tests (can't run aarch64 binaries on x86 host).
+      # ANTHROPIC_API_KEY-gated tests run only when the secret is provided.
+
+      - name: cargo test --workspace --no-fail-fast
+        if: steps.have_ruvector.outputs.present == 'true' && matrix.use_cross != true
+        shell: bash
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cargo test --workspace --no-fail-fast --target "$BUILD_TARGET"
+
+      # ----- Package ---------------------------------------------------------
+
+      - name: Stage `learn` binary (Unix)
+        if: steps.have_ruvector.outputs.present == 'true' && matrix.os != 'windows'
+        shell: bash
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          STAGE_DIR="dist/learn-${BUILD_TARGET}"
+          mkdir -p "$STAGE_DIR"
+          BIN="target/${BUILD_TARGET}/release/learn"
+          if [ ! -f "$BIN" ]; then
+            echo "::error::Expected binary not found at $BIN"
+            ls -la "target/${BUILD_TARGET}/release/" || true
+            exit 1
+          fi
+          cp "$BIN" "$STAGE_DIR/"
+          [ -f README.md ] && cp README.md "$STAGE_DIR/" || true
+          [ -f LICENSE ]   && cp LICENSE   "$STAGE_DIR/" || true
+          tar -czf "dist/learn-${BUILD_TARGET}.tar.gz" -C dist "learn-${BUILD_TARGET}"
+
+      - name: Stage `learn` binary (Windows)
+        if: steps.have_ruvector.outputs.present == 'true' && matrix.os == 'windows'
+        shell: pwsh
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          $stage = "dist/learn-$env:BUILD_TARGET"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $bin = "target/$env:BUILD_TARGET/release/learn.exe"
+          if (-not (Test-Path $bin)) {
+            Write-Error "Expected binary not found at $bin"
+            exit 1
+          }
+          Copy-Item $bin $stage
+          if (Test-Path README.md) { Copy-Item README.md $stage }
+          if (Test-Path LICENSE)   { Copy-Item LICENSE   $stage }
+          Compress-Archive -Path $stage -DestinationPath "dist/learn-$env:BUILD_TARGET.zip" -Force
+
+      - name: Upload release artifact
+        if: steps.have_ruvector.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: learn-${{ matrix.target }}
+          path: dist/learn-${{ matrix.target }}.${{ matrix.archive_ext }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Skip notice (no RuVector)
+        if: steps.have_ruvector.outputs.present != 'true'
+        shell: bash
+        run: |
+          echo "Release build for ${{ matrix.target }} skipped: RuVector_Clean unavailable."
+          echo "Configure secrets.RUVECTOR_TOKEN and ensure the source repo exists to enable."
+          exit 0

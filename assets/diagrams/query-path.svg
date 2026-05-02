@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 820" width="620" height="820" role="img" aria-label="learn-rs query path: question through expansion, hybrid retrieval, rerank, MMR, synthesis, cited answer">
+  <defs>
+    <linearGradient id="grad-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fafbfc"/>
+      <stop offset="100%" stop-color="#eef1f4"/>
+    </linearGradient>
+    <linearGradient id="grad-question" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f3f6"/>
+    </linearGradient>
+    <linearGradient id="grad-stage" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f6f2fb"/>
+    </linearGradient>
+    <linearGradient id="grad-answer" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16607d"/>
+      <stop offset="100%" stop-color="#072636"/>
+    </linearGradient>
+    <radialGradient id="grad-badge" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#9468ce"/>
+      <stop offset="100%" stop-color="#5e3a8c"/>
+    </radialGradient>
+    <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-opacity="0.10"/>
+    </filter>
+    <filter id="hero-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity="0.20"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9468ce"/>
+    </marker>
+    <style>
+      .badge-num { font-family: -apple-system, system-ui, sans-serif; font-size: 14px; font-weight: 700; fill: #fff; }
+      .stage-h { font-family: -apple-system, system-ui, sans-serif; font-size: 15px; font-weight: 700; fill: #1a1f2e; letter-spacing: 1.2px; }
+      .stage-tag { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; fill: #4b5563; }
+      .stage-note { font-family: -apple-system, system-ui, sans-serif; font-size: 10.5px; fill: #6e7686; font-style: italic; }
+      .q-h { font-family: -apple-system, system-ui, sans-serif; font-size: 12px; font-weight: 700; fill: #6b7280; letter-spacing: 1.3px; text-transform: uppercase; }
+      .q-tag { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; fill: #1a1f2e; }
+      .answer-h { font-family: -apple-system, system-ui, sans-serif; font-size: 11.5px; font-weight: 700; fill: #c89b3c; letter-spacing: 1.4px; text-transform: uppercase; }
+      .answer-name { font-family: -apple-system, system-ui, sans-serif; font-size: 16px; font-weight: 700; fill: #fafbfc; }
+      .answer-cite { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; fill: rgba(255,255,255,0.85); }
+    </style>
+  </defs>
+
+  <rect width="620" height="820" fill="url(#grad-bg)"/>
+
+  <!-- Question -->
+  <g filter="url(#card-shadow)">
+    <rect x="160" y="24" width="300" height="64" rx="10" ry="10" fill="url(#grad-question)" stroke="#aab1bc" stroke-dasharray="5 3"/>
+    <text class="q-h" x="310" y="48" text-anchor="middle">USER QUESTION</text>
+    <text class="q-tag" x="310" y="72" text-anchor="middle">"what is lamination?"</text>
+  </g>
+
+  <line x1="310" y1="88" x2="310" y2="120" stroke="#9468ce" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 1: EXPAND -->
+  <g filter="url(#card-shadow)">
+    <rect x="60" y="124" width="500" height="80" rx="10" ry="10" fill="url(#grad-stage)" stroke="#9468ce" stroke-width="1.5"/>
+    <circle cx="100" cy="164" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="100" y="170" text-anchor="middle">1</text>
+    <text class="stage-h" x="140" y="156">EXPAND</text>
+    <text class="stage-tag" x="140" y="176">HyDE: hypothetical answer</text>
+    <text class="stage-note" x="140" y="192">embedded as second query vector</text>
+  </g>
+
+  <line x1="310" y1="204" x2="310" y2="234" stroke="#9468ce" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 2: HYBRID RETRIEVE -->
+  <g filter="url(#card-shadow)">
+    <rect x="60" y="240" width="500" height="92" rx="10" ry="10" fill="url(#grad-stage)" stroke="#9468ce" stroke-width="1.5"/>
+    <circle cx="100" cy="286" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="100" y="292" text-anchor="middle">2</text>
+    <text class="stage-h" x="140" y="270">HYBRID RETRIEVE</text>
+    <text class="stage-tag" x="140" y="290">dense (BGE) + BM25 (tantivy)</text>
+    <text class="stage-tag" x="140" y="306">Reciprocal Rank Fusion · k = 60</text>
+    <text class="stage-note" x="140" y="322">→ top 50 candidates</text>
+  </g>
+
+  <line x1="310" y1="332" x2="310" y2="362" stroke="#9468ce" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 3: RERANK -->
+  <g filter="url(#card-shadow)">
+    <rect x="60" y="368" width="500" height="80" rx="10" ry="10" fill="url(#grad-stage)" stroke="#9468ce" stroke-width="1.5"/>
+    <circle cx="100" cy="408" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="100" y="414" text-anchor="middle">3</text>
+    <text class="stage-h" x="140" y="400">RERANK</text>
+    <text class="stage-tag" x="140" y="420">cross-encoder · BGE-reranker-base</text>
+    <text class="stage-note" x="140" y="436">→ top 10</text>
+  </g>
+
+  <line x1="310" y1="448" x2="310" y2="478" stroke="#9468ce" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 4: MMR -->
+  <g filter="url(#card-shadow)">
+    <rect x="60" y="484" width="500" height="80" rx="10" ry="10" fill="url(#grad-stage)" stroke="#9468ce" stroke-width="1.5"/>
+    <circle cx="100" cy="524" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="100" y="530" text-anchor="middle">4</text>
+    <text class="stage-h" x="140" y="516">MMR + SOURCE-CAP</text>
+    <text class="stage-tag" x="140" y="536">diversity λ = 0.7</text>
+    <text class="stage-note" x="140" y="552">≤ 3 chunks per video</text>
+  </g>
+
+  <line x1="310" y1="564" x2="310" y2="594" stroke="#9468ce" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 5: SYNTHESIZE -->
+  <g filter="url(#card-shadow)">
+    <rect x="60" y="600" width="500" height="92" rx="10" ry="10" fill="url(#grad-stage)" stroke="#9468ce" stroke-width="1.5"/>
+    <circle cx="100" cy="646" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="100" y="652" text-anchor="middle">5</text>
+    <text class="stage-h" x="140" y="630">SYNTHESIZE</text>
+    <text class="stage-tag" x="140" y="650">cited prompt template · abstain rule</text>
+    <text class="stage-note" x="140" y="666">AIMDS scan in &amp; out</text>
+    <text class="stage-note" x="140" y="682">refuses when retrieval signal is weak</text>
+  </g>
+
+  <line x1="310" y1="692" x2="310" y2="724" stroke="#c89b3c" stroke-width="2.2" marker-end="url(#arrow)"/>
+
+  <!-- Answer (hero) -->
+  <g filter="url(#hero-shadow)">
+    <rect x="80" y="730" width="460" height="74" rx="12" ry="12" fill="url(#grad-answer)"/>
+    <rect x="80" y="730" width="460" height="74" rx="12" ry="12" fill="none" stroke="#c89b3c" stroke-width="1.5" stroke-opacity="0.6"/>
+    <text class="answer-h" x="310" y="753" text-anchor="middle">⬢ ANSWER WITH CITATIONS</text>
+    <text class="answer-name" x="310" y="780" text-anchor="middle">grounded · auditable · refuses if KB weak</text>
+    <text class="answer-cite" x="310" y="797" text-anchor="middle">[Title @ MM:SS](url&amp;t=Xs)</text>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+[package]
+name = "learn-retrieve"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Hybrid retrieval (dense + BM25), RRF fusion, MMR diversity."
+
+[dependencies]
+learn-core.workspace = true
+learn-embed.workspace = true
+learn-index.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+camino.workspace = true
+tantivy = "0.22"
+async-trait = "0.1"
+tokio.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

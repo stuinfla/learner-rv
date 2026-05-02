@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 800" width="980" height="800" role="img" aria-label="learn-rs architecture: CLI atop three color-coded lanes (ingestion, curation, consumption), unified by learn-core, resting on RuVector RVF format">
+  <defs>
+    <linearGradient id="grad-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fafbfc"/>
+      <stop offset="100%" stop-color="#eef1f4"/>
+    </linearGradient>
+    <linearGradient id="grad-cli" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a3145"/>
+      <stop offset="100%" stop-color="#161a26"/>
+    </linearGradient>
+    <linearGradient id="grad-ingest-lane" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e6f7f7"/>
+      <stop offset="100%" stop-color="#cdedee"/>
+    </linearGradient>
+    <linearGradient id="grad-curation-lane" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fcf2e0"/>
+      <stop offset="100%" stop-color="#f5e2bd"/>
+    </linearGradient>
+    <linearGradient id="grad-consumption-lane" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f1ebf8"/>
+      <stop offset="100%" stop-color="#dfd0ed"/>
+    </linearGradient>
+    <linearGradient id="grad-core" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a3145"/>
+      <stop offset="100%" stop-color="#161a26"/>
+    </linearGradient>
+    <linearGradient id="grad-rvf" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16607d"/>
+      <stop offset="100%" stop-color="#072636"/>
+    </linearGradient>
+    <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-opacity="0.10"/>
+    </filter>
+    <filter id="hero-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity="0.18"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/>
+    </marker>
+    <style>
+      .cli-name { font-family: -apple-system, system-ui, sans-serif; font-size: 19px; font-weight: 700; fill: #fafbfc; letter-spacing: 0.5px; }
+      .cli-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 11.5px; fill: #c89b3c; letter-spacing: 1.2px; text-transform: uppercase; }
+      .lane-h { font-family: -apple-system, system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+      .lane-h-ingest { fill: #0c7a7c; }
+      .lane-h-curation { fill: #a06e1f; }
+      .lane-h-consume { fill: #5e3a8c; }
+      .crate-name { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; font-weight: 700; fill: #1a1f2e; }
+      .crate-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 10.5px; fill: #4b5563; }
+      .core-name { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 16px; font-weight: 700; fill: #fafbfc; letter-spacing: 0.5px; }
+      .core-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 11.5px; fill: #c89b3c; letter-spacing: 1.2px; text-transform: uppercase; }
+      .rvf-h { font-family: -apple-system, system-ui, sans-serif; font-size: 13.5px; font-weight: 700; fill: #c89b3c; letter-spacing: 1.5px; text-transform: uppercase; }
+      .rvf-name { font-family: -apple-system, system-ui, sans-serif; font-size: 19px; font-weight: 700; fill: #fafbfc; letter-spacing: 0.5px; }
+      .rvf-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 11.5px; fill: rgba(255,255,255,0.78); }
+      .rvf-line { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; fill: #fafbfc; }
+    </style>
+  </defs>
+
+  <rect width="980" height="800" fill="url(#grad-bg)"/>
+
+  <!-- CLI -->
+  <g filter="url(#hero-shadow)">
+    <rect x="290" y="24" width="400" height="64" rx="12" ry="12" fill="url(#grad-cli)"/>
+    <rect x="290" y="24" width="400" height="64" rx="12" ry="12" fill="none" stroke="#c89b3c" stroke-width="1" stroke-opacity="0.5"/>
+    <text class="cli-name" x="490" y="52" text-anchor="middle">learn-cli</text>
+    <text class="cli-tag" x="490" y="74" text-anchor="middle">SMART ROUTING · SLUG AUTO-DERIVE · CLAP</text>
+  </g>
+
+  <line x1="370" y1="88" x2="180" y2="135" stroke="#0c7a7c" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <line x1="490" y1="88" x2="490" y2="135" stroke="#a06e1f" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <line x1="610" y1="88" x2="800" y2="135" stroke="#5e3a8c" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- INGESTION lane -->
+  <g filter="url(#card-shadow)">
+    <rect x="30" y="140" width="300" height="345" rx="14" ry="14" fill="url(#grad-ingest-lane)" stroke="#16b3b5" stroke-width="1" stroke-opacity="0.4"/>
+    <text class="lane-h lane-h-ingest" x="180" y="166" text-anchor="middle">INGESTION</text>
+
+    <rect x="50" y="180" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#16b3b5" stroke-width="1.4"/>
+    <circle cx="68" cy="205" r="4" fill="#16b3b5"/>
+    <text class="crate-name" x="80" y="200">learn-acquire</text>
+    <text class="crate-tag" x="80" y="218">yt-dlp · captions-first</text>
+
+    <rect x="50" y="240" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#16b3b5" stroke-width="1.4"/>
+    <circle cx="68" cy="265" r="4" fill="#16b3b5"/>
+    <text class="crate-name" x="80" y="260">learn-asr</text>
+    <text class="crate-tag" x="80" y="278">whisper.cpp · Metal · on-device</text>
+
+    <rect x="50" y="300" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#16b3b5" stroke-width="1.4"/>
+    <circle cx="68" cy="325" r="4" fill="#16b3b5"/>
+    <text class="crate-name" x="80" y="320">learn-chunk</text>
+    <text class="crate-tag" x="80" y="338">sentence-aware + overlap</text>
+
+    <rect x="50" y="360" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#16b3b5" stroke-width="1.4"/>
+    <circle cx="68" cy="385" r="4" fill="#16b3b5"/>
+    <text class="crate-name" x="80" y="380">learn-embed</text>
+    <text class="crate-tag" x="80" y="398">BGE-large ONNX · 1024-dim</text>
+
+    <rect x="50" y="420" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#16b3b5" stroke-width="1.4"/>
+    <circle cx="68" cy="445" r="4" fill="#16b3b5"/>
+    <text class="crate-name" x="80" y="440">learn-index</text>
+    <text class="crate-tag" x="80" y="458">RvfStore · HNSW</text>
+  </g>
+
+  <!-- CURATION lane -->
+  <g filter="url(#card-shadow)">
+    <rect x="340" y="140" width="300" height="345" rx="14" ry="14" fill="url(#grad-curation-lane)" stroke="#d99c47" stroke-width="1" stroke-opacity="0.4"/>
+    <text class="lane-h lane-h-curation" x="490" y="166" text-anchor="middle">CURATION</text>
+
+    <rect x="360" y="190" width="260" height="64" rx="6" ry="6" fill="#fff" stroke="#d99c47" stroke-width="1.4"/>
+    <circle cx="378" cy="222" r="4" fill="#d99c47"/>
+    <text class="crate-name" x="390" y="212">learn-discover</text>
+    <text class="crate-tag" x="390" y="230">ytsearch harvest</text>
+    <text class="crate-tag" x="390" y="246">+ Ruflo GOAP scoring</text>
+
+    <rect x="360" y="266" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#d99c47" stroke-width="1.4"/>
+    <circle cx="378" cy="291" r="4" fill="#d99c47"/>
+    <text class="crate-name" x="390" y="286">human confirm</text>
+    <text class="crate-tag" x="390" y="304">--auto skips prompt</text>
+
+    <rect x="360" y="328" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#d99c47" stroke-width="1.4"/>
+    <circle cx="378" cy="353" r="4" fill="#d99c47"/>
+    <text class="crate-name" x="390" y="348">ingestion handoff</text>
+    <text class="crate-tag" x="390" y="366">→ learn-acquire pipeline</text>
+
+    <rect x="360" y="390" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#d99c47" stroke-width="1.4"/>
+    <circle cx="378" cy="415" r="4" fill="#d99c47"/>
+    <text class="crate-name" x="390" y="410">learn-graph</text>
+    <text class="crate-tag" x="390" y="428">claims · entities · relations</text>
+  </g>
+
+  <!-- CONSUMPTION lane -->
+  <g filter="url(#card-shadow)">
+    <rect x="650" y="140" width="300" height="345" rx="14" ry="14" fill="url(#grad-consumption-lane)" stroke="#9468ce" stroke-width="1" stroke-opacity="0.4"/>
+    <text class="lane-h lane-h-consume" x="800" y="166" text-anchor="middle">CONSUMPTION</text>
+
+    <rect x="670" y="190" width="260" height="64" rx="6" ry="6" fill="#fff" stroke="#9468ce" stroke-width="1.4"/>
+    <circle cx="688" cy="222" r="4" fill="#9468ce"/>
+    <text class="crate-name" x="700" y="212">learn-retrieve</text>
+    <text class="crate-tag" x="700" y="230">dense + BM25 · RRF</text>
+    <text class="crate-tag" x="700" y="246">rerank · MMR · source-cap</text>
+
+    <rect x="670" y="266" width="260" height="64" rx="6" ry="6" fill="#fff" stroke="#9468ce" stroke-width="1.4"/>
+    <circle cx="688" cy="298" r="4" fill="#9468ce"/>
+    <text class="crate-name" x="700" y="288">learn-synth</text>
+    <text class="crate-tag" x="700" y="306">cited prompt · abstain rule</text>
+    <text class="crate-tag" x="700" y="322">AIMDS scan in &amp; out</text>
+
+    <rect x="670" y="342" width="260" height="50" rx="6" ry="6" fill="#fff" stroke="#9468ce" stroke-width="1.4"/>
+    <circle cx="688" cy="367" r="4" fill="#9468ce"/>
+    <text class="crate-name" x="700" y="362">learn-eval</text>
+    <text class="crate-tag" x="700" y="380">golden Q&amp;A regression</text>
+  </g>
+
+  <!-- Connectors to learn-core -->
+  <line x1="180" y1="485" x2="490" y2="535" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="490" y1="485" x2="490" y2="535" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="800" y1="485" x2="490" y2="535" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <!-- learn-core -->
+  <g filter="url(#hero-shadow)">
+    <rect x="240" y="540" width="500" height="74" rx="12" ry="12" fill="url(#grad-core)"/>
+    <rect x="240" y="540" width="500" height="74" rx="12" ry="12" fill="none" stroke="#c89b3c" stroke-width="1" stroke-opacity="0.5"/>
+    <text class="core-name" x="490" y="572" text-anchor="middle">learn-core</text>
+    <text class="core-tag" x="490" y="595" text-anchor="middle">CONTRACTS · TYPES · ERRORS · TOPIC SLUG</text>
+  </g>
+
+  <line x1="490" y1="614" x2="490" y2="650" stroke="#c89b3c" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- RVF substrate (hero) -->
+  <g filter="url(#hero-shadow)">
+    <rect x="80" y="655" width="820" height="125" rx="14" ry="14" fill="url(#grad-rvf)"/>
+    <rect x="80" y="655" width="820" height="125" rx="14" ry="14" fill="none" stroke="#c89b3c" stroke-width="1.5" stroke-opacity="0.6"/>
+    <text class="rvf-h" x="490" y="682" text-anchor="middle">⬢ RUVECTOR RVF FORMAT — THE SUBSTRATE</text>
+    <text class="rvf-name" x="490" y="710" text-anchor="middle">one .rvf file per topic · the file IS the database</text>
+    <text class="rvf-line" x="115" y="744">rvf-runtime  →  RvfStore (append-only, COW, witness chain)</text>
+    <text class="rvf-line" x="115" y="765">rvf-index    →  HNSW graph construction + traversal</text>
+    <text class="rvf-line" x="540" y="744">progressive boot · single-writer / multi-reader</text>
+    <text class="rvf-line" x="540" y="765">cryptographic provenance · format-level interop</text>
+  </g>
+</svg>

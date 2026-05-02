@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 1020" width="680" height="1020" role="img" aria-label="learn-rs ingest pipeline: source flowing through eight numbered stages into a per-topic RVF knowledge file">
+  <defs>
+    <linearGradient id="grad-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fafbfc"/>
+      <stop offset="100%" stop-color="#eef1f4"/>
+    </linearGradient>
+    <linearGradient id="grad-source" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f3f6"/>
+    </linearGradient>
+    <linearGradient id="grad-stage" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f4f7fa"/>
+    </linearGradient>
+    <linearGradient id="grad-rvf" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16607d"/>
+      <stop offset="100%" stop-color="#072636"/>
+    </linearGradient>
+    <radialGradient id="grad-badge" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#16b3b5"/>
+      <stop offset="100%" stop-color="#0c7a7c"/>
+    </radialGradient>
+    <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-opacity="0.10"/>
+    </filter>
+    <filter id="hero-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity="0.20"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#16b3b5"/>
+    </marker>
+    <style>
+      .badge-num { font-family: -apple-system, system-ui, sans-serif; font-size: 14px; font-weight: 700; fill: #fff; }
+      .stage-h { font-family: -apple-system, system-ui, sans-serif; font-size: 15px; font-weight: 700; fill: #1a1f2e; letter-spacing: 1.2px; }
+      .stage-tag { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; fill: #4b5563; }
+      .stage-note { font-family: -apple-system, system-ui, sans-serif; font-size: 10.5px; fill: #6e7686; font-style: italic; }
+      .source-h { font-family: -apple-system, system-ui, sans-serif; font-size: 12px; font-weight: 700; fill: #6b7280; letter-spacing: 1.3px; text-transform: uppercase; }
+      .source-tag { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; fill: #4b5563; }
+      .rvf-h { font-family: -apple-system, system-ui, sans-serif; font-size: 11.5px; font-weight: 700; fill: #c89b3c; letter-spacing: 1.4px; text-transform: uppercase; }
+      .rvf-name { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 16px; font-weight: 700; fill: #fafbfc; }
+      .rvf-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 11px; fill: rgba(255,255,255,0.75); }
+    </style>
+  </defs>
+
+  <rect width="680" height="1020" fill="url(#grad-bg)"/>
+
+  <!-- Source -->
+  <g filter="url(#card-shadow)">
+    <rect x="180" y="24" width="320" height="74" rx="10" ry="10" fill="url(#grad-source)" stroke="#aab1bc" stroke-dasharray="5 3"/>
+    <text class="source-h" x="340" y="48" text-anchor="middle">SOURCE</text>
+    <text class="source-tag" x="340" y="70" text-anchor="middle">URL · playlist · channel · local file</text>
+    <text class="source-tag" x="340" y="86" text-anchor="middle">ytsearch:&lt;query&gt;</text>
+  </g>
+
+  <line x1="340" y1="98" x2="340" y2="135" stroke="#16b3b5" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 1: ACQUIRE -->
+  <g filter="url(#card-shadow)">
+    <rect x="80" y="140" width="520" height="80" rx="10" ry="10" fill="url(#grad-stage)" stroke="#16b3b5" stroke-width="1.5"/>
+    <circle cx="120" cy="180" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="120" y="186" text-anchor="middle">1</text>
+    <text class="stage-h" x="160" y="172">ACQUIRE</text>
+    <text class="stage-tag" x="160" y="192">yt-dlp · captions-first</text>
+    <text class="stage-note" x="160" y="208">audio-only fallback when no captions</text>
+  </g>
+
+  <line x1="340" y1="220" x2="340" y2="252" stroke="#16b3b5" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 2: TRANSCRIBE -->
+  <g filter="url(#card-shadow)">
+    <rect x="80" y="258" width="520" height="92" rx="10" ry="10" fill="url(#grad-stage)" stroke="#16b3b5" stroke-width="1.5"/>
+    <circle cx="120" cy="304" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="120" y="310" text-anchor="middle">2</text>
+    <text class="stage-h" x="160" y="288">TRANSCRIBE</text>
+    <text class="stage-tag" x="160" y="308">caption VTT  ←  preferred (free, instant)</text>
+    <text class="stage-tag" x="160" y="324">whisper.cpp + Metal · BGE preprocessing</text>
+    <text class="stage-note" x="160" y="340">audio never leaves the device</text>
+  </g>
+
+  <line x1="340" y1="350" x2="340" y2="382" stroke="#16b3b5" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 3: CHUNK -->
+  <g filter="url(#card-shadow)">
+    <rect x="80" y="388" width="520" height="80" rx="10" ry="10" fill="url(#grad-stage)" stroke="#16b3b5" stroke-width="1.5"/>
+    <circle cx="120" cy="428" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="120" y="434" text-anchor="middle">3</text>
+    <text class="stage-h" x="160" y="420">CHUNK</text>
+    <text class="stage-tag" x="160" y="440">sentence-aware boundaries</text>
+    <text class="stage-note" x="160" y="456">~300 tokens · 50-token overlap · runt-merged</text>
+  </g>
+
+  <line x1="340" y1="468" x2="340" y2="500" stroke="#16b3b5" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 4: EMBED -->
+  <g filter="url(#card-shadow)">
+    <rect x="80" y="506" width="520" height="80" rx="10" ry="10" fill="url(#grad-stage)" stroke="#16b3b5" stroke-width="1.5"/>
+    <circle cx="120" cy="546" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="120" y="552" text-anchor="middle">4</text>
+    <text class="stage-h" x="160" y="538">EMBED</text>
+    <text class="stage-tag" x="160" y="558">BGE-large-en-v1.5 · 1024-dim</text>
+    <text class="stage-note" x="160" y="574">ONNX · batched · on-device</text>
+  </g>
+
+  <line x1="340" y1="586" x2="340" y2="618" stroke="#16b3b5" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 5: INDEX -->
+  <g filter="url(#card-shadow)">
+    <rect x="80" y="624" width="520" height="92" rx="10" ry="10" fill="url(#grad-stage)" stroke="#16b3b5" stroke-width="1.5"/>
+    <circle cx="120" cy="670" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="120" y="676" text-anchor="middle">5</text>
+    <text class="stage-h" x="160" y="654">INDEX</text>
+    <text class="stage-tag" x="160" y="674">RvfStore append-only HNSW</text>
+    <text class="stage-tag" x="160" y="690">per-chunk metadata sidecar</text>
+    <text class="stage-note" x="160" y="706">witness chain → URL provenance</text>
+  </g>
+
+  <line x1="340" y1="716" x2="340" y2="748" stroke="#16b3b5" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- Stage 6: EXTRACT -->
+  <g filter="url(#card-shadow)">
+    <rect x="80" y="754" width="520" height="92" rx="10" ry="10" fill="url(#grad-stage)" stroke="#16b3b5" stroke-width="1.5"/>
+    <circle cx="120" cy="800" r="22" fill="url(#grad-badge)"/>
+    <text class="badge-num" x="120" y="806" text-anchor="middle">6</text>
+    <text class="stage-h" x="160" y="784">EXTRACT (graph)</text>
+    <text class="stage-tag" x="160" y="804">claims · entities · relations</text>
+    <text class="stage-tag" x="160" y="820">stored as Cypher-style graph</text>
+    <text class="stage-note" x="160" y="836">powers who-said / timeline / compare</text>
+  </g>
+
+  <line x1="340" y1="846" x2="340" y2="888" stroke="#c89b3c" stroke-width="2.2" marker-end="url(#arrow)"/>
+
+  <!-- KB file (hero) -->
+  <g filter="url(#hero-shadow)">
+    <rect x="170" y="894" width="340" height="106" rx="12" ry="12" fill="url(#grad-rvf)"/>
+    <rect x="170" y="894" width="340" height="106" rx="12" ry="12" fill="none" stroke="#c89b3c" stroke-width="1.5" stroke-opacity="0.6"/>
+    <text class="rvf-h" x="340" y="922" text-anchor="middle">⬢ RUVECTOR RVF</text>
+    <text class="rvf-name" x="340" y="952" text-anchor="middle">~/Docs/KB/&lt;topic&gt;.rvf</text>
+    <text class="rvf-tag" x="340" y="976" text-anchor="middle">smart · independent · intelligent</text>
+  </g>
+</svg>

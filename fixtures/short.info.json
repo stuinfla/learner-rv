@@ -1,0 +1,16 @@
+{
+  "id": "dQw4w9WgXcQ",
+  "title": "learn-rs integration test fixture",
+  "uploader": "Test Uploader",
+  "channel_id": "UC_test_channel_id_00000",
+  "duration": 10.0,
+  "upload_date": "20240101",
+  "ext": "mp4",
+  "webpage_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "thumbnails": [],
+  "description": "Hermetic fixture for learn-rs integration tests. Do not use this file for real downloads.",
+  "categories": [],
+  "tags": [],
+  "subtitles": {},
+  "automatic_captions": {}
+}

@@ -1,0 +1,10 @@
+topic: french-cooking
+version: 1
+items:
+  - id: lamination_basics
+    question: "What is lamination and why does it matter for croissants?"
+    mode: ask
+    expected_substrings: ["butter", "fold"]
+    forbidden_substrings: ["AI invented"]
+    min_citations: 1
+    abstain_acceptable: false

@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" width="880" height="420" role="img" aria-label="Learn-RV capability matrix: six capability cards covering ownership, citations, self-learning, on-device, RuVector-native, scale">
+  <defs>
+    <linearGradient id="grad-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fafbfc"/>
+      <stop offset="100%" stop-color="#eef1f4"/>
+    </linearGradient>
+    <linearGradient id="grad-card-a" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0fafa"/>
+    </linearGradient>
+    <linearGradient id="grad-card-b" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fdf6e9"/>
+    </linearGradient>
+    <linearGradient id="grad-card-c" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f6f0fc"/>
+    </linearGradient>
+    <linearGradient id="grad-header" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#16607d"/>
+      <stop offset="100%" stop-color="#072636"/>
+    </linearGradient>
+    <radialGradient id="grad-icon-teal" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#16b3b5"/>
+      <stop offset="100%" stop-color="#0c7a7c"/>
+    </radialGradient>
+    <radialGradient id="grad-icon-amber" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#d99c47"/>
+      <stop offset="100%" stop-color="#a06e1f"/>
+    </radialGradient>
+    <radialGradient id="grad-icon-violet" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#9468ce"/>
+      <stop offset="100%" stop-color="#5e3a8c"/>
+    </radialGradient>
+    <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.10"/>
+    </filter>
+    <filter id="hero-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity="0.18"/>
+    </filter>
+    <style>
+      .header-h { font-family: -apple-system, system-ui, sans-serif; font-size: 14px; font-weight: 700; fill: #fafbfc; letter-spacing: 1.5px; }
+      .header-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 11.5px; fill: #c89b3c; letter-spacing: 1.3px; text-transform: uppercase; }
+      .card-h { font-family: -apple-system, system-ui, sans-serif; font-size: 14px; font-weight: 700; fill: #1a1f2e; }
+      .card-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 11px; fill: #4b5563; }
+      .icon-glyph { font-family: -apple-system, system-ui, sans-serif; font-size: 18px; font-weight: 700; fill: #fff; }
+    </style>
+  </defs>
+
+  <rect width="880" height="420" fill="url(#grad-bg)"/>
+
+  <!-- Header -->
+  <g filter="url(#hero-shadow)">
+    <rect x="20" y="20" width="840" height="46" rx="10" ry="10" fill="url(#grad-header)"/>
+    <rect x="20" y="20" width="840" height="46" rx="10" ry="10" fill="none" stroke="#c89b3c" stroke-width="1.2" stroke-opacity="0.55"/>
+    <text class="header-tag" x="40" y="44">⬢ LEARN-RV</text>
+    <text class="header-h" x="440" y="50" text-anchor="middle">WHAT YOU GET — AT A GLANCE</text>
+  </g>
+
+  <!-- Row 1 -->
+  <!-- Card 1: One file per topic -->
+  <g filter="url(#card-shadow)">
+    <rect x="20" y="86" width="270" height="150" rx="10" ry="10" fill="url(#grad-card-a)" stroke="#cdedee" stroke-width="1.2"/>
+    <circle cx="55" cy="125" r="22" fill="url(#grad-icon-teal)"/>
+    <text class="icon-glyph" x="55" y="131" text-anchor="middle">📁</text>
+    <text class="card-h" x="92" y="115">One file per topic</text>
+    <text class="card-h" x="92" y="135">You own it.</text>
+    <text class="card-tag" x="36" y="172">A topic of knowledge is a single .rvf file</text>
+    <text class="card-tag" x="36" y="190">on your disk. Move it, share it, delete it,</text>
+    <text class="card-tag" x="36" y="208">version it. No service to keep alive. No</text>
+    <text class="card-tag" x="36" y="226">cloud, no API spend, no subscription.</text>
+  </g>
+
+  <!-- Card 2: Witness chain -->
+  <g filter="url(#card-shadow)">
+    <rect x="305" y="86" width="270" height="150" rx="10" ry="10" fill="url(#grad-card-b)" stroke="#f5e2bd" stroke-width="1.2"/>
+    <circle cx="340" cy="125" r="22" fill="url(#grad-icon-amber)"/>
+    <text class="icon-glyph" x="340" y="131" text-anchor="middle">🔒</text>
+    <text class="card-h" x="377" y="115">Citations are auditable.</text>
+    <text class="card-h" x="377" y="135">Not just typed.</text>
+    <text class="card-tag" x="321" y="172">Every chunk of knowledge is</text>
+    <text class="card-tag" x="321" y="190">cryptographically anchored to its source</text>
+    <text class="card-tag" x="321" y="208">URL + timestamp via a witness chain</text>
+    <text class="card-tag" x="321" y="226">inside the .rvf file. Click a citation,</text>
+    <text class="card-tag" x="321" y="244">verify in one tap.</text>
+  </g>
+
+  <!-- Card 3: Self-learning -->
+  <g filter="url(#card-shadow)">
+    <rect x="590" y="86" width="270" height="150" rx="10" ry="10" fill="url(#grad-card-c)" stroke="#dfd0ed" stroke-width="1.2"/>
+    <circle cx="625" cy="125" r="22" fill="url(#grad-icon-violet)"/>
+    <text class="icon-glyph" x="625" y="131" text-anchor="middle">🧠</text>
+    <text class="card-h" x="662" y="115">Your KB actually learns.</text>
+    <text class="card-h" x="662" y="135">Day 365 ≠ Day 1.</text>
+    <text class="card-tag" x="606" y="172">Adaptive embedders + SONA tuning</text>
+    <text class="card-tag" x="606" y="190">mean the KB sharpens with every use.</text>
+    <text class="card-tag" x="606" y="208">Not a static pile — a living index that</text>
+    <text class="card-tag" x="606" y="226">gets better at answering you.</text>
+  </g>
+
+  <!-- Row 2 -->
+  <!-- Card 4: On-device -->
+  <g filter="url(#card-shadow)">
+    <rect x="20" y="252" width="270" height="150" rx="10" ry="10" fill="url(#grad-card-a)" stroke="#cdedee" stroke-width="1.2"/>
+    <circle cx="55" cy="291" r="22" fill="url(#grad-icon-teal)"/>
+    <text class="icon-glyph" x="55" y="297" text-anchor="middle">💻</text>
+    <text class="card-h" x="92" y="281">100% on-device.</text>
+    <text class="card-h" x="92" y="301">Your data stays yours.</text>
+    <text class="card-tag" x="36" y="338">Captions, audio, transcription,</text>
+    <text class="card-tag" x="36" y="356">embedding, indexing, retrieval, optional</text>
+    <text class="card-tag" x="36" y="374">synthesis — all run locally. Works offline,</text>
+    <text class="card-tag" x="36" y="392">on a plane, behind a firewall.</text>
+  </g>
+
+  <!-- Card 5: RuVector-native -->
+  <g filter="url(#card-shadow)">
+    <rect x="305" y="252" width="270" height="150" rx="10" ry="10" fill="url(#grad-card-b)" stroke="#f5e2bd" stroke-width="1.2"/>
+    <circle cx="340" cy="291" r="22" fill="url(#grad-icon-amber)"/>
+    <text class="icon-glyph" x="340" y="297" text-anchor="middle">⬢</text>
+    <text class="card-h" x="377" y="281">RuVector-native.</text>
+    <text class="card-h" x="377" y="301">Plays with the whole stack.</text>
+    <text class="card-tag" x="321" y="338">Brain-layer routers, agent-memory</text>
+    <text class="card-tag" x="321" y="356">adapters, every other RuVector tool —</text>
+    <text class="card-tag" x="321" y="374">they all read the same .rvf files.</text>
+    <text class="card-tag" x="321" y="392">A KB built here works everywhere.</text>
+  </g>
+
+  <!-- Card 6: Sub-linear search -->
+  <g filter="url(#card-shadow)">
+    <rect x="590" y="252" width="270" height="150" rx="10" ry="10" fill="url(#grad-card-c)" stroke="#dfd0ed" stroke-width="1.2"/>
+    <circle cx="625" cy="291" r="22" fill="url(#grad-icon-violet)"/>
+    <text class="icon-glyph" x="625" y="297" text-anchor="middle">⚡</text>
+    <text class="card-h" x="662" y="281">Scales without slowing.</text>
+    <text class="card-h" x="662" y="301">Logarithmic search.</text>
+    <text class="card-tag" x="606" y="338">HNSW is built into the .rvf format.</text>
+    <text class="card-tag" x="606" y="356">For very large topics, DiskANN +</text>
+    <text class="card-tag" x="606" y="374">RaBitQ kick in automatically. Recall</text>
+    <text class="card-tag" x="606" y="392">stays high as the corpus grows.</text>
+  </g>
+</svg>

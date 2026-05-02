@@ -1,0 +1,18 @@
+[package]
+name = "learn-reasoning"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "ReasoningBank — JSONL-backed trajectory store with cosine retrieval for learn-rs."
+
+[dependencies]
+learn-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+camino.workspace = true
+sha2 = "0.10"
+
+[dev-dependencies]
+tempfile = "3"

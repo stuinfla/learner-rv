@@ -1,0 +1,30 @@
+[package]
+name = "learn-asr"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "whisper.cpp ASR wrapper for learn-rs (Metal on Apple Silicon)."
+
+[dependencies]
+learn-core.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+camino.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# whisper-rs vendors whisper.cpp; the `metal` feature enables Metal on Apple Silicon.
+# The `_gpu` internal feature is implied by `metal`.
+whisper-rs = { version = "0.16", features = ["metal"] }
+ureq = { version = "2", features = ["tls"] }
+num_cpus = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[features]
+default = ["metal"]
+metal = []
+cpu = []

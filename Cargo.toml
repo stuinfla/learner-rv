@@ -1,0 +1,64 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/learn-cli",
+    "crates/learn-core",
+    "crates/learn-acquire",
+    "crates/learn-asr",
+    "crates/learn-chunk",
+    "crates/learn-discover",
+    "crates/learn-embed",
+    "crates/learn-index",
+    "crates/learn-graph",
+    "crates/learn-retrieve",
+    "crates/learn-synth",
+    "crates/learn-eval",
+    "crates/learn-coherence",
+    "crates/learn-reasoning",
+    "tests",                     # workspace-level integration tests
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.87"
+license = "MIT"
+authors = ["Stuart Kerr <stuart@isovision.ai>"]
+
+[workspace.dependencies]
+learn-core      = { path = "crates/learn-core" }
+learn-acquire   = { path = "crates/learn-acquire" }
+learn-asr       = { path = "crates/learn-asr" }
+learn-chunk     = { path = "crates/learn-chunk" }
+learn-discover  = { path = "crates/learn-discover" }
+learn-embed     = { path = "crates/learn-embed" }
+learn-index     = { path = "crates/learn-index" }
+learn-graph     = { path = "crates/learn-graph" }
+learn-retrieve  = { path = "crates/learn-retrieve" }
+learn-synth     = { path = "crates/learn-synth" }
+learn-eval      = { path = "crates/learn-eval" }
+learn-coherence = { path = "crates/learn-coherence" }
+learn-reasoning = { path = "crates/learn-reasoning" }
+
+anyhow      = "1"
+thiserror   = "2"
+serde       = { version = "1", features = ["derive"] }
+serde_json  = "1"
+bincode     = { version = "2.0.0-rc.3", features = ["serde"] }
+chrono      = { version = "0.4", features = ["serde"] }
+tokio       = { version = "1", features = ["full"] }
+tracing     = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap        = { version = "4", features = ["derive", "env"] }
+camino      = { version = "1", features = ["serde1"] }
+url         = { version = "2", features = ["serde"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+[profile.dev]
+opt-level = 0
+debug = true

@@ -1,0 +1,19 @@
+[package]
+name = "learn-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Pipeline types, errors, and orchestration traits for learn-rs."
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+camino.workspace = true
+url.workspace = true
+
+[dev-dependencies]

@@ -1,0 +1,27 @@
+[package]
+name = "learn-index"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "RVF HNSW index facade for learn-rs (imports rvf-runtime / rvf-index)."
+
+[dependencies]
+learn-core.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+camino.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+rvf-runtime = { path = "../../../ruvector/crates/rvf/rvf-runtime", features = ["std"] }
+rvf-types   = { path = "../../../ruvector/crates/rvf/rvf-types",   features = ["std"] }
+# rvf-index is not required for the facade; rvf-runtime contains the HNSW search.
+# rvf-index   = { path = "../../../ruvector/crates/rvf/rvf-index",   features = ["std"] }
+
+ruvector-diskann = { path = "../../../ruvector/crates/ruvector-diskann" }
+blake3 = "1"
+
+[dev-dependencies]
+tempfile = "3"

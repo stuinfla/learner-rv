@@ -1,0 +1,22 @@
+[package]
+name = "learn-eval"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Per-topic golden Q&A regression runner."
+
+[dependencies]
+learn-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+tracing.workspace = true
+serde_yaml = "0.9"
+async-trait = "0.1"
+tokio.workspace = true
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
+camino.workspace = true
+
+[dev-dependencies]
+url.workspace = true

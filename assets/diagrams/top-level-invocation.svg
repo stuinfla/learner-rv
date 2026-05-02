@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 540" width="860" height="540" role="img" aria-label="learn-rs top-level invocation flow with three quote bubbles, learn binary, three modes, and topic-scoped knowledge base">
+  <defs>
+    <linearGradient id="grad-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fafbfc"/>
+      <stop offset="100%" stop-color="#f1f3f5"/>
+    </linearGradient>
+    <linearGradient id="grad-quote" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f4f6f8"/>
+    </linearGradient>
+    <linearGradient id="grad-binary" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a3145"/>
+      <stop offset="100%" stop-color="#161a26"/>
+    </linearGradient>
+    <linearGradient id="grad-ingest" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16b3b5"/>
+      <stop offset="100%" stop-color="#0c7a7c"/>
+    </linearGradient>
+    <linearGradient id="grad-study" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d99c47"/>
+      <stop offset="100%" stop-color="#a06e1f"/>
+    </linearGradient>
+    <linearGradient id="grad-consume" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9468ce"/>
+      <stop offset="100%" stop-color="#5e3a8c"/>
+    </linearGradient>
+    <linearGradient id="grad-rvf" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16607d"/>
+      <stop offset="100%" stop-color="#0a3a4d"/>
+    </linearGradient>
+    <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.10"/>
+    </filter>
+    <filter id="hero-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity="0.18"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7280"/>
+    </marker>
+    <style>
+      .quote { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; fill: #2a3145; font-style: italic; }
+      .binary-name { font-family: -apple-system, system-ui, sans-serif; font-size: 19px; font-weight: 700; fill: #fafbfc; letter-spacing: 0.5px; }
+      .binary-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 11.5px; fill: #c89b3c; letter-spacing: 1.2px; text-transform: uppercase; }
+      .mode-name { font-family: -apple-system, system-ui, sans-serif; font-size: 16px; font-weight: 700; fill: #fff; letter-spacing: 0.3px; }
+      .mode-tag { font-family: -apple-system, system-ui, sans-serif; font-size: 11px; fill: rgba(255,255,255,0.85); }
+      .file-h { font-family: -apple-system, system-ui, sans-serif; font-size: 12px; font-weight: 600; fill: #c89b3c; letter-spacing: 1.2px; text-transform: uppercase; }
+      .file-name { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; fill: #fafbfc; }
+      .file-note { font-family: -apple-system, system-ui, sans-serif; font-size: 11px; fill: rgba(255,255,255,0.6); font-style: italic; }
+    </style>
+  </defs>
+
+  <rect width="860" height="540" fill="url(#grad-bg)"/>
+
+  <!-- Quote bubbles -->
+  <g filter="url(#card-shadow)">
+    <rect x="30" y="30" width="250" height="64" rx="10" ry="10" fill="url(#grad-quote)" stroke="#d6d9dd" stroke-width="1"/>
+    <text class="quote" x="46" y="55">"I want to learn how to</text>
+    <text class="quote" x="46" y="74">make croissants"</text>
+  </g>
+  <g filter="url(#card-shadow)">
+    <rect x="305" y="30" width="250" height="64" rx="10" ry="10" fill="url(#grad-quote)" stroke="#d6d9dd" stroke-width="1"/>
+    <text class="quote" x="321" y="55">"Ingest this playlist on</text>
+    <text class="quote" x="321" y="74">indexed arbitrage"</text>
+  </g>
+  <g filter="url(#card-shadow)">
+    <rect x="580" y="30" width="250" height="64" rx="10" ry="10" fill="url(#grad-quote)" stroke="#d6d9dd" stroke-width="1"/>
+    <text class="quote" x="596" y="55">"What does Karpathy say</text>
+    <text class="quote" x="596" y="74">about RL training?"</text>
+  </g>
+
+  <!-- Connector lines to binary -->
+  <line x1="155" y1="94" x2="395" y2="135" stroke="#c89b3c" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="430" y1="94" x2="430" y2="135" stroke="#c89b3c" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="705" y1="94" x2="465" y2="135" stroke="#c89b3c" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <!-- learn binary -->
+  <g filter="url(#hero-shadow)">
+    <rect x="305" y="140" width="250" height="74" rx="12" ry="12" fill="url(#grad-binary)"/>
+    <rect x="305" y="140" width="250" height="74" rx="12" ry="12" fill="none" stroke="#c89b3c" stroke-width="1" stroke-opacity="0.5"/>
+    <text class="binary-name" x="430" y="172" text-anchor="middle">learn</text>
+    <text class="binary-tag" x="430" y="195" text-anchor="middle">SINGLE RUST BINARY</text>
+  </g>
+
+  <!-- Connector lines to modes -->
+  <line x1="360" y1="214" x2="170" y2="265" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="430" y1="214" x2="430" y2="265" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="500" y1="214" x2="690" y2="265" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <!-- Three mode cards -->
+  <g filter="url(#card-shadow)">
+    <rect x="50" y="270" width="240" height="80" rx="10" ry="10" fill="url(#grad-ingest)"/>
+    <text class="mode-name" x="170" y="302" text-anchor="middle">ingest</text>
+    <text class="mode-tag" x="170" y="324" text-anchor="middle">TACTICAL</text>
+    <text class="mode-tag" x="170" y="340" text-anchor="middle">paste a URL · playlist · channel</text>
+  </g>
+  <g filter="url(#card-shadow)">
+    <rect x="310" y="270" width="240" height="80" rx="10" ry="10" fill="url(#grad-study)"/>
+    <text class="mode-name" x="430" y="302" text-anchor="middle">study</text>
+    <text class="mode-tag" x="430" y="324" text-anchor="middle">STRATEGIC</text>
+    <text class="mode-tag" x="430" y="340" text-anchor="middle">describe a topic, get a curriculum</text>
+  </g>
+  <g filter="url(#card-shadow)">
+    <rect x="570" y="270" width="240" height="80" rx="10" ry="10" fill="url(#grad-consume)"/>
+    <text class="mode-name" x="690" y="302" text-anchor="middle">ask · apply</text>
+    <text class="mode-tag" x="690" y="324" text-anchor="middle">CONSUME</text>
+    <text class="mode-tag" x="690" y="340" text-anchor="middle">cited answers · grounded artifacts</text>
+  </g>
+
+  <!-- Convergence to KB -->
+  <line x1="170" y1="350" x2="430" y2="395" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="430" y1="350" x2="430" y2="395" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="690" y1="350" x2="430" y2="395" stroke="#6b7280" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <!-- KB tree -->
+  <g filter="url(#hero-shadow)">
+    <rect x="155" y="400" width="550" height="120" rx="12" ry="12" fill="url(#grad-rvf)"/>
+    <rect x="155" y="400" width="550" height="120" rx="12" ry="12" fill="none" stroke="#c89b3c" stroke-width="1" stroke-opacity="0.5"/>
+    <text class="file-h" x="175" y="425">~/Docs/KB/   ·   ONE .rvf PER TOPIC, FULLY ISOLATED</text>
+    <circle cx="187" cy="450" r="3" fill="#c89b3c"/>
+    <text class="file-name" x="200" y="455">french-cooking.rvf</text>
+    <circle cx="187" cy="475" r="3" fill="#c89b3c"/>
+    <text class="file-name" x="200" y="480">indexed-arbitrage.rvf</text>
+    <circle cx="187" cy="500" r="3" fill="#c89b3c"/>
+    <text class="file-name" x="200" y="505">karpathy-rl.rvf</text>
+    <text class="file-note" x="430" y="455">drop a topic · share a topic · move it to another machine</text>
+    <text class="file-note" x="430" y="480">RuVector RVF format · HNSW + witness chain inside the file</text>
+    <text class="file-note" x="430" y="505">no daemon · no Docker · no cloud · the file IS the database</text>
+  </g>
+</svg>

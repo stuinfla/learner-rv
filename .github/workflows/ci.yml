@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  ci:
+    name: CI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+
+    steps:
+      # checkout
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # toolchain
+      - name: Install Rust toolchain (from rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.91.1"
+          components: rustfmt, clippy, llvm-tools-preview
+
+      # cache - cargo registry
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      # cache - target directory
+      - name: Cache cargo target dir
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}-
+            ${{ runner.os }}-cargo-target-
+
+      # fmt-check
+      - name: fmt-check
+        run: cargo fmt --check
+
+      # clippy
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # test (ignore-tagged tests excluded by default)
+      - name: test
+        run: cargo test --workspace
+
+      # release build
+      - name: build --release
+        run: cargo build --release --workspace
+
+      # install cargo-llvm-cov
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      # coverage report (text summary, excludes Phase-1-incomplete crates)
+      - name: Coverage report (text summary)
+        run: |
+          cargo llvm-cov \
+            --workspace \
+            --exclude learn-asr \
+            --exclude learn-embed \
+            --exclude learn-index \
+            --exclude learn-graph \
+            --exclude learn-cli \
+            --text \
+            --summary-only \
+            2>&1 | tee coverage-summary.txt
+
+      # enforce threshold
+      - name: Enforce coverage threshold (>=80% line coverage)
+        run: |
+          COVERAGE=$(grep -E '^TOTAL' coverage-summary.txt \
+            | awk '{print $NF}' \
+            | tr -d '%')
+          echo "Measured line coverage: ${COVERAGE}%"
+          if [ -z "${COVERAGE}" ]; then
+            echo "ERROR: Could not parse coverage percentage from summary."
+            exit 1
+          fi
+          awk -v cov="${COVERAGE}" 'BEGIN {
+            if (cov + 0 < 80) {
+              print "FAIL: line coverage " cov "% is below the 80% threshold."
+              exit 1
+            } else {
+              print "PASS: line coverage " cov "% meets the 80% threshold."
+            }
+          }'
+
+      # upload coverage artifact
+      - name: Upload coverage summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-summary
+          path: coverage-summary.txt
+          retention-days: 14
