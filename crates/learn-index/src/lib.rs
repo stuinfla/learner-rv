@@ -527,6 +527,31 @@ impl LearnIndex {
         self.embeddings.get(&id).map(|v| v.as_slice())
     }
 
+    /// Reconstruct all `Embedded` values for a single video from the in-memory
+    /// sidecar + embedding map.
+    ///
+    /// Used by the crash-recovery fast-path: when `IngestStatus::Embedded` is
+    /// present, the embeddings are already on disk; calling this avoids
+    /// re-running the ONNX inference step.
+    ///
+    /// Returns an empty `Vec` when none of the sidecar chunks belong to
+    /// `video_id` or when their embeddings are absent (caller should fall back
+    /// to a full re-embed in that case).
+    pub fn embedded_for_video(&self, video_id: &str) -> Vec<learn_core::Embedded> {
+        self.chunks
+            .values()
+            .filter(|c| c.video_id == video_id)
+            .filter_map(|c| {
+                let id = chunk_id_to_u64(&c.chunk_id);
+                self.embeddings.get(&id).map(|emb| learn_core::Embedded {
+                    chunk: c.clone(),
+                    embedding: emb.clone(),
+                    embedding_model: "stored".to_string(),
+                })
+            })
+            .collect()
+    }
+
     /// Force a flush + compaction.
     pub fn compact(&mut self) -> Result<()> {
         match &mut self.store {

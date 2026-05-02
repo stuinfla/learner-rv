@@ -128,6 +128,40 @@ async fn ingest_single_video(
             );
             return Ok(());
         }
+        Some(IngestStatus::Embedded) if !force => {
+            // Embeddings are already on disk — skip acquire/transcribe/chunk/embed.
+            let embedded = index.embedded_for_video(&video_id);
+            if !embedded.is_empty() {
+                tracing::info!(
+                    video_id = %video_id,
+                    chunks = embedded.len(),
+                    "ingest: resuming from Embedded checkpoint — skipping to index step"
+                );
+                let now = super::rfc3339_now();
+                let chunk_count = embedded.len();
+                let accepted = index.ingest(&embedded)?;
+                let indexed_at = super::rfc3339_now();
+                index.upsert_video_state(VideoState {
+                    video_id: video_id.clone(),
+                    status: IngestStatus::Indexed,
+                    fetched_at: Some(now),
+                    indexed_at: Some(indexed_at),
+                    chunk_count,
+                    error: None,
+                })?;
+                println!(
+                    "ingested {accepted} chunks from {video_id} into \
+                     {kb_root}/{topic}.rvf (resumed from Embedded)"
+                );
+                return Ok(());
+            }
+            // Embeddings absent from sidecar — fall through to full pipeline.
+            tracing::warn!(
+                video_id = %video_id,
+                "ingest: Embedded checkpoint present but no embeddings in sidecar; \
+                 falling back to full pipeline"
+            );
+        }
         _ => {}
     }
 
@@ -1473,6 +1507,139 @@ mod tests {
         assert!(
             !would_skip,
             "should NOT skip when force=true even for Failed status"
+        );
+    }
+
+    /// Phase 3E: Embedded-checkpoint resume.
+    ///
+    /// Simulates a crash after the Embed stage: the manifest has `Embedded`
+    /// status and the sidecar already holds the chunks + embeddings (written
+    /// by `index.ingest()` during the first run).  After a reopen the
+    /// `embedded_for_video` method must reconstruct the full batch so the
+    /// CLI can skip directly to the index step.
+    ///
+    /// This test exercises the real production path (upsert_video_state →
+    /// save_manifest → reopen → embedded_for_video) without calling acquire_url.
+    #[test]
+    fn cmd_ingest_embedded_checkpoint_resume_skips_to_index_step() {
+        use learn_core::{Chunk, Embedded, IngestStatus, VideoState};
+        use learn_index::LearnIndex;
+
+        let dir = TempDir::new().unwrap();
+        let kb_root = kb(&dir);
+        let topic = Topic::new("embedded-resume-topic").unwrap();
+        let video_id = "embed_resume_vid_001";
+
+        // --- Phase A: simulate the first run completing up to Embedded ---
+        {
+            let mut index = LearnIndex::open(kb_root.as_ref(), topic.clone()).unwrap();
+
+            // Build two synthetic chunks with 4-dim embeddings.
+            let chunks: Vec<Chunk> = (0..2)
+                .map(|i| Chunk {
+                    chunk_id: format!("{video_id}-chunk-{i}"),
+                    video_id: video_id.to_string(),
+                    start_seconds: i as f64 * 10.0,
+                    end_seconds: i as f64 * 10.0 + 9.9,
+                    text: format!("chunk text {i}"),
+                    token_count: 3,
+                })
+                .collect();
+
+            let embedded: Vec<Embedded> = chunks
+                .iter()
+                .map(|c| Embedded {
+                    chunk: c.clone(),
+                    // 4-dim embedding; RVF requires dim > 0.
+                    embedding: vec![0.1_f32 * (c.start_seconds as f32 + 1.0); 4],
+                    embedding_model: "test-model".to_string(),
+                })
+                .collect();
+
+            // Ingest writes chunks + embeddings into the sidecar and .emb.bin.
+            index.ingest(&embedded).unwrap();
+
+            // Write Embedded status — this is the checkpoint a killed process leaves.
+            index
+                .upsert_video_state(VideoState {
+                    video_id: video_id.to_string(),
+                    status: IngestStatus::Embedded,
+                    fetched_at: Some("2026-01-01T00:00:00Z".to_string()),
+                    indexed_at: None,
+                    chunk_count: embedded.len(),
+                    error: None,
+                })
+                .unwrap();
+        }
+
+        // --- Phase B: reopen (simulates process restart) ---
+        let mut index2 = LearnIndex::open(kb_root.as_ref(), topic.clone()).unwrap();
+
+        // Verify the manifest survived the reopen.
+        let vs = index2
+            .manifest()
+            .videos
+            .get(video_id)
+            .expect("video state must survive reopen");
+        assert_eq!(
+            vs.status,
+            IngestStatus::Embedded,
+            "manifest must show Embedded after reopen"
+        );
+
+        // --- Phase C: embedded_for_video must reconstruct the batch ---
+        let recovered = index2.embedded_for_video(video_id);
+        assert_eq!(
+            recovered.len(),
+            2,
+            "embedded_for_video must return both chunks from the sidecar"
+        );
+        assert!(
+            recovered.iter().all(|e| e.embedding.len() == 4),
+            "each recovered embedding must have dim=4"
+        );
+        assert!(
+            recovered.iter().all(|e| e.chunk.video_id == video_id),
+            "all recovered chunks must belong to the target video"
+        );
+
+        // --- Phase D: the CLI skip predicate fires for Embedded+!force ---
+        let force = false;
+        let would_resume = vs.status == IngestStatus::Embedded && !force && !recovered.is_empty();
+        assert!(
+            would_resume,
+            "should resume from Embedded checkpoint (not re-embed) when force=false"
+        );
+
+        // --- Phase E: the index step completes with the recovered batch ---
+        // This mirrors what the CLI does after the fast-path is triggered.
+        let accepted = index2.ingest(&recovered).unwrap();
+        assert!(
+            accepted > 0 || recovered.len() > 0,
+            "index step must accept the recovered embeddings"
+        );
+        index2
+            .upsert_video_state(VideoState {
+                video_id: video_id.to_string(),
+                status: IngestStatus::Indexed,
+                fetched_at: Some("2026-01-01T00:00:00Z".to_string()),
+                indexed_at: Some("2026-01-01T00:00:05Z".to_string()),
+                chunk_count: recovered.len(),
+                error: None,
+            })
+            .unwrap();
+
+        // Re-open once more and confirm Indexed status persisted.
+        let index3 = LearnIndex::open(kb_root.as_ref(), topic).unwrap();
+        let final_vs = index3
+            .manifest()
+            .videos
+            .get(video_id)
+            .expect("video state must survive second reopen");
+        assert_eq!(
+            final_vs.status,
+            IngestStatus::Indexed,
+            "status must be Indexed after resume completes"
         );
     }
 

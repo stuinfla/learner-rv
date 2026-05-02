@@ -1,4 +1,5 @@
 /target
+target/
 **/*.rs.bk
 Cargo.lock.bak
 .DS_Store
@@ -7,6 +8,23 @@ Cargo.lock.bak
 *.rvf.tmp
 fixtures/cache/
 
+# Local agent + tool metadata
+.claude/
+.mcp.json
+.openclaw/
+
+# Backup directories from refactors
+crates/*.bak/
+*.bak/
+
+# Stale v0 artifacts (project is RVF-first; legacy db files do not ship)
+ruvector.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.local
+
 # The ruvector symlink lives as a sibling to this workspace (../ruvector -> RuVector_Clean).
 # It is outside this repo so git never tracks it. See BUILDING.md.
-target/

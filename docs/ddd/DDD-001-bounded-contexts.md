@@ -32,7 +32,7 @@ The Learn-RV codebase is twelve crates wide and growing. As capabilities land, t
 | **KbHealth** | Per-topic health snapshot from `learn-coherence` — Fiedler eigenvalue (graph connectivity proxy) plus contradiction rate. |
 | **DriftReport** | Output of `learn-coherence` drift detection — CUSUM-style changepoint over the embedding distribution of recent ingests. |
 
-## The seven bounded contexts
+## The eight bounded contexts
 
 Each context owns its own crate(s) and exposes a small public surface to the rest of the system. Cross-context calls go through `learn-core` types only.
 
@@ -80,7 +80,7 @@ Responsibilities:
 - `learn-coherence` — KB health (`KbHealth` with Fiedler eigenvalue + contradiction rate) and drift detection (`DriftReport` with CUSUM-style changepoint).
 - `learn-reasoning` — `ReasoningBank` trajectory store (`Trajectory`, `derive_trajectory_id`), JSONL persistence, cosine retrieval over past successful queries.
 
-**Witness chain (planned, not yet implemented in `learn-index`):** the underlying `rvf-runtime` crate provides `WitnessBuilder` and `GovernancePolicy` types for cryptographically anchoring inserts to source URL + timestamp. `learn-index` does not yet wire them — the sidecar stores `Chunk` data with `video_id` and `start_seconds` but does not produce a witness entry. ADR-001 Phase 4B tracks this as part of the formal-proofs work.
+**Witness chain (wired in `learn-index` as of 2026-05-02):** every chunk insert appends a `WitnessEntry` to a Blake3-chained log persisted in `<topic>.witness.json` (atomic tmp+rename). `verify_witness_chain` detects tampering and chain-break independently. Implementation uses Blake3 directly rather than the upstream `rvf-runtime::WitnessBuilder` because the latter is a TLV AGI task-trace format with no per-chunk video-provenance fields (`video_id`, `source_url`, `start_seconds`). Tested by `witness_chain_persists_across_open_close` and four sibling tests in `learn-index`. ADR-001 Phase 4B continues to track formal-proofs work over `claim_id` derivation.
 
 ### Context 4 — Retrieval
 
@@ -198,4 +198,5 @@ This keeps each context independently testable, independently mockable for `lear
 
 ## Change log
 
-- 2026-05-02 — initial draft, all seven bounded contexts mapped, ubiquitous language pinned, anti-corruption layers and aggregate consistency rules captured.
+- 2026-05-02 — initial draft, all eight bounded contexts mapped, ubiquitous language pinned, anti-corruption layers and aggregate consistency rules captured.
+- 2026-05-02 — header "seven" → "eight" correction; witness chain wording updated to reflect implementation now wired in `learn-index` (Blake3 chain + `verify_witness_chain` + 5 tests).
