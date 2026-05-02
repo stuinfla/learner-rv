@@ -24,6 +24,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # RuVector dependency: workspace path-depends on ../ruvector/crates/*.
+      # Materialise it as a sibling shallow-clone before any cargo command.
+      # ruvnet/RuVector is public (MIT); no token required.
+      - name: Clone ruvnet/RuVector (sibling, public)
+        shell: bash
+        run: |
+          git clone --depth 1 --branch main \
+            https://github.com/ruvnet/RuVector.git \
+            ../ruvector
+
       # toolchain
       - name: Install Rust toolchain (from rust-toolchain.toml)
         uses: dtolnay/rust-toolchain@master
