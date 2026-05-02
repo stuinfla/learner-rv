@@ -72,7 +72,7 @@ pub async fn run_ingest_with_limit(
                 ingest_single_video(url.clone(), topic_override.clone(), kb_root.clone(), force)
                     .await
             {
-                eprintln!("warning: failed to ingest {url}: {e}");
+                tracing::warn!(%url, error = %e, "failed to ingest video");
             }
         }
         return Ok(());
@@ -199,9 +199,9 @@ async fn ingest_single_video(
     };
 
     if segments.is_empty() {
-        eprintln!(
-            "warning: no transcript available for {video_id}. \
-             Automatic captions were not found and Whisper fallback is not yet wired."
+        tracing::warn!(
+            %video_id,
+            "no transcript available; automatic captions not found and Whisper fallback not yet wired"
         );
         // Record failed state so next run can skip cleanly without --force.
         let _ = index.upsert_video_state(VideoState {
@@ -1008,9 +1008,11 @@ pub async fn run_study(
         )
         .await
         {
-            eprintln!(
-                "warning: failed to ingest {} (rank {}): {}",
-                pick.video.video_id, pick.rank, e
+            tracing::warn!(
+                video_id = %pick.video.video_id,
+                rank = pick.rank,
+                error = %e,
+                "study: failed to ingest"
             );
         }
     }

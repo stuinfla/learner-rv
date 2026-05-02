@@ -75,9 +75,12 @@ fn maybe_download(dir: &Utf8PathBuf, filename: &str, url: &str) -> Result<()> {
             f.write_all(&buf[..n])
                 .map_err(|e| LearnError::Embed(format!("write tmp: {e}")))?;
             total += n as u64;
-            eprint!("\r  {filename}: {:.1} MB", total as f64 / 1_048_576.0);
         }
-        eprintln!();
+        info!(
+            filename,
+            mb = total as f64 / 1_048_576.0,
+            "download finished"
+        );
     }
 
     std::fs::rename(tmp_path.as_path(), dest.as_path())

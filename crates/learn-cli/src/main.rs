@@ -131,10 +131,10 @@ async fn main() {
             force,
         } => {
             if since.is_some() {
-                eprintln!("warning: --since is not yet implemented and will be ignored");
+                tracing::warn!("--since is not yet implemented and will be ignored");
             }
             if with_frames {
-                eprintln!("warning: --with_frames is not yet implemented and will be ignored");
+                tracing::warn!("--with_frames is not yet implemented and will be ignored");
             }
             commands::run_ingest_with_limit(source, topic, kb_root, force, limit).await
         }

@@ -36,8 +36,7 @@ pub fn ensure_default_model() -> Result<Utf8PathBuf> {
     std::fs::create_dir_all(dir)
         .map_err(|e| LearnError::Transcribe(format!("create model dir: {e}")))?;
 
-    eprintln!("Downloading whisper model to {model_path} …");
-    eprintln!("Source: {MODEL_URL}");
+    info!(%model_path, source = %MODEL_URL, "downloading whisper model");
 
     let response = ureq::get(MODEL_URL)
         .call()
@@ -63,7 +62,7 @@ pub fn ensure_default_model() -> Result<Utf8PathBuf> {
             .map_err(|e| LearnError::Transcribe(format!("write temp file: {e}")))?;
         total += n as u64;
         if total % (10 * 1024 * 1024) < n as u64 {
-            eprintln!("  … {:.1} MB downloaded", total as f64 / 1_048_576.0);
+            info!(mb = total as f64 / 1_048_576.0, "model download progress");
         }
     }
 
@@ -75,8 +74,12 @@ pub fn ensure_default_model() -> Result<Utf8PathBuf> {
     std::fs::rename(&tmp_path, model_path.as_std_path())
         .map_err(|e| LearnError::Transcribe(format!("rename temp file: {e}")))?;
 
-    eprintln!("Model downloaded ({:.1} MB).", total as f64 / 1_048_576.0);
-    info!(path = %model_path, bytes = total, "model download complete");
+    info!(
+        path = %model_path,
+        bytes = total,
+        mb = total as f64 / 1_048_576.0,
+        "model download complete"
+    );
 
     Ok(model_path)
 }
