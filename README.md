@@ -4,7 +4,7 @@ Your tool for building intelligent knowledge bases, stored in RuVector.
 
 Point Learn-RV at a YouTube video — or a channel, playlist, or even a search like "french cooking technique" — and it builds a queryable knowledge base on disk. Every `learn ask` returns answers grounded in specific timestamps in specific videos, not hallucinated. Each topic is a single `.rvf` file. The KB sharpens with use through per-topic adaptive embeddings.
 
-> **End-to-end verified 2026-05-02:** real ingest of `QZMljuD10sU` into `~/Docs/KB/claude-skills.rvf` (125 KB, 31 chunks) → cited Anthropic answer with `[1][2][3]` timestamp links.
+> **End-to-end verified 2026-05-03 (v0.1.5):** ingested `kDw3vno7tNM` into `~/Docs/KB/verified-demo.rvf` — 27 chunks, 109 KB, frames captioned via Sonnet vision, coherence integrated=0.65 workspace=1.00 [Coherent]. Cited Anthropic answer with `[1][2][3]` timestamp links verified.
 
 ## Two ways to use it
 
