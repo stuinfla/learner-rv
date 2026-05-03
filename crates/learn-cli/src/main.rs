@@ -1,7 +1,10 @@
 //! `learn` — point at a video source, build a knowledge base, query it.
 
+mod cloud;
 mod commands;
 mod doctor;
+mod map;
+pub(crate) mod summary;
 
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
@@ -52,6 +55,9 @@ enum Cmd {
         max_frames: usize,
         #[arg(long)]
         force: bool,
+        /// Skip the post-ingest key-takeaways summary (for batch/scripted use).
+        #[arg(long)]
+        no_summary: bool,
     },
     /// Ask a question against a topic KB; answers come with citations.
     Ask {
@@ -154,6 +160,33 @@ enum Cmd {
         #[arg(long, default_value = "stdio")]
         transport: String,
     },
+    /// Generate an SVG word cloud for a topic (or a meta-cloud across all topics).
+    ///
+    /// Single topic:  learn cloud <topic>
+    /// All topics:    learn cloud
+    Cloud {
+        /// Topic name.  Omit to generate a meta-cloud across all topics.
+        topic: Option<String>,
+        /// Override the default output path.
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+        /// Also emit an HTML wrapper with a title bar.
+        #[arg(long)]
+        print_html: bool,
+    },
+    /// Generate a UMAP/PCA galaxy map of KB chunks projected into 2-D concept space.
+    ///
+    /// All topics:     learn map          → ~/Docs/KB/_meta/knowledge-map.svg
+    /// Single topic:   learn map <topic>  → ~/Docs/KB/<topic>.map.svg
+    ///
+    /// Similar chunks cluster naturally.  Topics form constellations.  Density = depth.
+    Map {
+        /// Topic name.  Omit to map all topics.
+        topic: Option<String>,
+        /// Override the default output path.
+        #[arg(long)]
+        out: Option<Utf8PathBuf>,
+    },
 }
 
 /// Print the friendly orientation block and exit 0.
@@ -171,8 +204,10 @@ fn print_orientation() -> ! {
   learn study <topic> --depth medium              Autonomous curriculum (auto-discover videos)
   learn apply <topic> "<task>"                    Generate a cited artifact (recipe, plan, code)
   learn watch <topic> --cadence weekly            Schedule recurring channel ingestion
+  learn cloud <topic>                             SVG word cloud of topic KB content
+  learn map                                       PCA galaxy of all KB chunks in 2-D concept space
 
-▶ All 17 commands:    learn --help
+▶ All 19 commands:    learn --help
 ▶ Per-command flags:  learn <command> --help
 
 ▶ In Claude Code, you don't type any of this.
@@ -212,6 +247,7 @@ async fn main() {
             with_frames,
             max_frames,
             force,
+            no_summary,
         } => {
             if since.is_some() {
                 tracing::warn!("--since is not yet implemented and will be ignored");
@@ -229,7 +265,7 @@ async fn main() {
                 }
             };
             commands::run_ingest_with_frames(
-                source, topic, kb_root, force, limit, frames_arg, max_frames,
+                source, topic, kb_root, force, limit, frames_arg, max_frames, no_summary,
             )
             .await
         }
@@ -271,6 +307,12 @@ async fn main() {
             depth,
         } => commands::run_chat(topic, resume, depth, kb_root).await,
         Cmd::Serve { topic, transport } => commands::run_serve(topic, transport, kb_root),
+        Cmd::Cloud {
+            topic,
+            out,
+            print_html,
+        } => commands::run_cloud(topic, out, print_html, kb_root),
+        Cmd::Map { topic, out } => commands::run_map(topic, out, kb_root),
         // Doctor is dispatched above; this arm is unreachable but required by exhaustiveness.
         Cmd::Doctor => unreachable!("doctor dispatched before match"),
     };
@@ -537,30 +579,32 @@ mod tests {
         // Canonical list — one entry per Cmd variant.  Update this list when
         // adding or removing a subcommand; the test will fail if the count
         // in print_orientation() is left behind.
-        const CMD_VARIANT_COUNT: usize = 17; // Ingest Ask Apply Study WhoSaid
+        const CMD_VARIANT_COUNT: usize = 19; // Ingest Ask Apply Study WhoSaid
                                              // Timeline Compare Summarize List Status
-                                             // Watch Eval Forget Compact Doctor Chat Serve
+                                             // Watch Eval Forget Compact Doctor Chat Serve Cloud Map
                                              // Capture the orientation text and parse out the "▶ All N commands" figure.
         let orientation = format!("{CMD_VARIANT_COUNT}");
         // The orientation block in print_orientation() hard-codes the same integer.
         // We match against the same source-of-truth constant so the test is
         // self-consistent — any mismatch between the two constants is a bug.
         assert_eq!(
-            CMD_VARIANT_COUNT, 17,
+            CMD_VARIANT_COUNT, 19,
             "Update CMD_VARIANT_COUNT and '▶ All N commands' in print_orientation() together"
         );
 
         // Also verify the orientation string contains the expected count.
-        let orientation_text = "▶ All 17 commands:    learn --help";
+        let orientation_text = "▶ All 19 commands:    learn --help";
         let count_str = orientation_text
             .split("All ")
             .nth(1)
             .and_then(|s| s.split_whitespace().next())
             .and_then(|s| s.parse::<usize>().ok())
             .expect("orientation text must contain 'All N commands'");
-        assert_eq!(count_str, CMD_VARIANT_COUNT,
+        assert_eq!(
+            count_str, CMD_VARIANT_COUNT,
             "orientation says '{count_str} commands' but CMD_VARIANT_COUNT is {CMD_VARIANT_COUNT}; \
-             update '▶ All N commands' in print_orientation() and CMD_VARIANT_COUNT together");
+             update '▶ All N commands' in print_orientation() and CMD_VARIANT_COUNT together"
+        );
         let _ = orientation; // suppress unused warning
     }
 

@@ -1728,6 +1728,7 @@ dependencies = [
  "learn-serve",
  "learn-synth",
  "reqwest",
+ "serde",
  "serde_json",
  "tempfile",
  "tokio",

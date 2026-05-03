@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use camino::Utf8PathBuf;
 use learn_coherence::compute_consciousness_kpi;
 use learn_core::{
-    Embedded, Hit, IngestStatus, LearnError, Manifest, Result, Topic, Transcript, TranscriptSource,
-    VideoState,
+    Chunk, Embedded, Hit, IngestStatus, LearnError, Manifest, Result, SegmentKind, Topic,
+    Transcript, TranscriptSource, VideoState,
 };
 use learn_graph::{EntityId, LearnGraph};
 use learn_index::LearnIndex;
@@ -75,6 +75,7 @@ pub async fn run_ingest_with_limit(
         limit,
         frames_arg,
         max_frames,
+        false, // no_summary — backward-compat default
     )
     .await
 }
@@ -83,6 +84,8 @@ pub async fn run_ingest_with_limit(
 ///
 /// This is the primary entry-point called by the CLI binary.
 /// `run_ingest_with_limit` is kept for backward-compatible test use.
+/// `no_summary` suppresses the post-ingest key-takeaways summary.
+#[allow(clippy::too_many_arguments)]
 pub async fn run_ingest_with_frames(
     source: String,
     topic_override: Option<String>,
@@ -91,6 +94,7 @@ pub async fn run_ingest_with_frames(
     limit: Option<usize>,
     frames_arg: learn_frames::FramesArg,
     max_frames: usize,
+    no_summary: bool,
 ) -> Result<()> {
     use learn_acquire::{classify_source, resolve_to_videos, SourceKind};
 
@@ -107,8 +111,12 @@ pub async fn run_ingest_with_frames(
             count = urls.len(),
             "ingest: resolved multi-video source"
         );
+        // Collect all new chunks across videos for a single meta-summary.
+        let mut all_new_chunks: Vec<Chunk> = Vec::new();
+        let mut topic_for_summary: Option<Topic> = None;
+
         for url in urls {
-            if let Err(e) = ingest_single_video(
+            match ingest_single_video(
                 url.clone(),
                 topic_override.clone(),
                 kb_root.clone(),
@@ -118,24 +126,81 @@ pub async fn run_ingest_with_frames(
             )
             .await
             {
-                tracing::warn!(%url, error = %e, "failed to ingest video");
+                Ok((topic, new_chunks)) => {
+                    all_new_chunks.extend(new_chunks);
+                    topic_for_summary = Some(topic);
+                }
+                Err(e) => {
+                    tracing::warn!(%url, error = %e, "failed to ingest video");
+                }
+            }
+        }
+
+        // One meta-summary for the whole playlist/channel/search run.
+        if !no_summary {
+            if let Some(topic) = topic_for_summary {
+                emit_summary(&topic, &all_new_chunks, &kb_root, true).await;
             }
         }
         return Ok(());
     }
 
-    ingest_single_video(
+    let (topic, new_chunks) = ingest_single_video(
         source,
         topic_override,
-        kb_root,
+        kb_root.clone(),
         force,
         frames_arg,
         max_frames,
     )
-    .await
+    .await?;
+
+    if !no_summary {
+        emit_summary(&topic, &new_chunks, &kb_root, false).await;
+    }
+
+    Ok(())
+}
+
+/// Call `generate_summary` and print the post-ingest report to stdout.
+/// Never returns an error — summary is best-effort.
+async fn emit_summary(topic: &Topic, chunks: &[Chunk], kb_root: &camino::Utf8Path, is_meta: bool) {
+    match crate::summary::generate_summary(topic, chunks, kb_root, is_meta).await {
+        Ok(Some(s)) => {
+            println!();
+            println!("Key takeaways:");
+            for line in s.body.lines() {
+                let trimmed = line.trim();
+                if !trimmed.is_empty() {
+                    println!("  {trimmed}");
+                }
+            }
+            println!();
+            println!("Files written:");
+            println!("  Summary:   {}", s.path);
+            // Show cloud path if it exists already.
+            let cloud_path = kb_root.join(format!("{}.cloud.svg", topic.as_str()));
+            if cloud_path.exists() {
+                println!("  Cloud:     {cloud_path}  (open in a browser)");
+            }
+            println!();
+            println!("Next:");
+            println!("  learn ask {topic} \"<your question>\"");
+            println!("  learn chat {topic}");
+        }
+        Ok(None) => {
+            // API key absent — warn already emitted by generate_summary.
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "summary generation failed");
+        }
+    }
 }
 
 /// Core single-video ingestion pipeline (acquire → transcribe → [frames] → chunk → embed → index).
+///
+/// Returns the resolved `Topic` and the raw `Chunk`s produced in this run so
+/// the caller can pass them to the post-ingest summary without a second pass.
 async fn ingest_single_video(
     source: String,
     topic_override: Option<String>,
@@ -143,7 +208,7 @@ async fn ingest_single_video(
     force: bool,
     frames_arg: learn_frames::FramesArg,
     max_frames: usize,
-) -> Result<()> {
+) -> Result<(Topic, Vec<Chunk>)> {
     // 1. Resolve topic.
     let topic = match topic_override {
         Some(t) => Topic::new(&t)?,
@@ -182,7 +247,7 @@ async fn ingest_single_video(
                 "video {video_id} already indexed, skipping \
                  (use --force to re-ingest)"
             );
-            return Ok(());
+            return Ok((topic, vec![]));
         }
         Some(IngestStatus::Failed) if !force => {
             let err_msg = index
@@ -195,7 +260,7 @@ async fn ingest_single_video(
                 "video {video_id} previously failed: {err_msg} — skipping \
                  (use --force to retry)"
             );
-            return Ok(());
+            return Ok((topic, vec![]));
         }
         Some(IngestStatus::Embedded) if !force => {
             // Embeddings are already on disk — skip acquire/transcribe/chunk/embed.
@@ -208,6 +273,7 @@ async fn ingest_single_video(
                 );
                 let now = super::rfc3339_now();
                 let chunk_count = embedded.len();
+                let resume_chunks: Vec<Chunk> = embedded.iter().map(|e| e.chunk.clone()).collect();
                 let accepted = index.ingest(&embedded)?;
                 let indexed_at = super::rfc3339_now();
                 index.upsert_video_state(VideoState {
@@ -222,7 +288,7 @@ async fn ingest_single_video(
                     "ingested {accepted} chunks from {video_id} into \
                      {kb_root}/{topic}.rvf (resumed from Embedded)"
                 );
-                return Ok(());
+                return Ok((topic, resume_chunks));
             }
             // Embeddings absent from sidecar — fall through to full pipeline.
             tracing::warn!(
@@ -327,7 +393,7 @@ async fn ingest_single_video(
             chunk_count: 0,
             error: Some("no transcript or frames available".to_string()),
         });
-        return Ok(());
+        return Ok((topic, vec![]));
     }
 
     // 8. Build Transcript and mark Transcribed.
@@ -392,7 +458,7 @@ async fn ingest_single_video(
     })?;
 
     println!("ingested {accepted} chunks from {video_id} into {kb_root}/{topic}.rvf");
-    Ok(())
+    Ok((topic, chunks))
 }
 
 // ── WhoSaid ──────────────────────────────────────────────────────────────────
@@ -493,6 +559,9 @@ pub async fn run_compare(
 // ── Summarize ────────────────────────────────────────────────────────────────
 
 /// Summarize a topic or one specific video.
+///
+/// Topic-level summary writes `<topic>.summary.md` via `generate_summary`.
+/// Single-video summary also writes the file so re-running is idempotent.
 pub async fn run_summarize(
     topic_str: String,
     video: Option<String>,
@@ -508,46 +577,31 @@ pub async fn run_summarize(
             println!("No claims found for video {video_id:?}. Try re-ingesting.");
             return Ok(());
         }
-        let hits = claims_to_hits(&claims, &video_id);
-        let synth = learn_synth::select_synthesizer()?;
-        let task = format!("Summarize the key points from video {video_id}");
-        let answer = synth
-            .apply(topic.as_str(), &task, "markdown", &hits)
-            .await?;
-        if answer.abstained {
-            eprintln!("(model abstained)");
-        } else {
-            println!("{}", answer.text);
-        }
+        let chunks: Vec<Chunk> = claims
+            .iter()
+            .map(|c| Chunk {
+                chunk_id: c.source_chunk_id.clone(),
+                video_id: c.source_video_id.clone(),
+                start_seconds: c.source_timestamp,
+                end_seconds: c.source_timestamp + 5.0,
+                text: c.text.clone(),
+                token_count: c.text.split_whitespace().count(),
+                kind: SegmentKind::Caption,
+            })
+            .collect();
+        emit_summary(&topic, &chunks, &kb_root, false).await;
     } else {
-        let graph = LearnGraph::open(kb_root.as_ref(), topic.clone())?;
-        let ranked = graph.pagerank()?;
         let index = LearnIndex::open(kb_root.as_ref(), topic.clone())?;
         let mut retriever =
             learn_retrieve::Retriever::for_topic(index, &topic, embedder_path.as_ref())?;
         retriever.refresh_bm25()?;
-        let query = ranked
-            .first()
-            .and_then(|(eid, _)| graph.entity(eid).ok().flatten().map(|e| e.name))
-            .unwrap_or_else(|| topic.as_str().to_string());
-        let hits = retriever.search(&query, 10).await?;
+        let hits = retriever.search(topic.as_str(), 10).await?;
         if hits.is_empty() {
             println!("KB is empty. Ingest some videos first.");
             return Ok(());
         }
-        let synth = learn_synth::select_synthesizer()?;
-        let task = format!(
-            "Summarize the key ideas in this knowledge base about {}",
-            topic.as_str()
-        );
-        let answer = synth
-            .apply(topic.as_str(), &task, "markdown", &hits)
-            .await?;
-        if answer.abstained {
-            eprintln!("(model abstained)");
-        } else {
-            println!("{}", answer.text);
-        }
+        let chunks: Vec<Chunk> = hits.into_iter().map(|h| h.chunk).collect();
+        emit_summary(&topic, &chunks, &kb_root, false).await;
     }
     Ok(())
 }
@@ -1272,6 +1326,7 @@ fn find_entity_by_name(graph: &LearnGraph, query_lc: &str) -> Result<Option<Enti
 }
 
 /// Convert claim list to synthetic `Hit`s for the synthesizer.
+#[allow(dead_code)]
 fn claims_to_hits(claims: &[learn_graph::Claim], video_id: &str) -> Vec<learn_core::Hit> {
     claims
         .iter()
@@ -1746,6 +1801,38 @@ pub fn run_serve(topic: String, transport: String, kb_root: Utf8PathBuf) -> Resu
     }
     let cfg = learn_serve::ServerConfig { topic, kb_root };
     learn_serve::run_server(cfg).map_err(|e| LearnError::Retrieve(format!("mcp server: {e}")))
+}
+
+// ── Cloud ─────────────────────────────────────────────────────────────────────
+
+/// Dispatch `learn cloud [<topic>]`.
+pub fn run_cloud(
+    topic: Option<String>,
+    out: Option<camino::Utf8PathBuf>,
+    print_html: bool,
+    kb_root: camino::Utf8PathBuf,
+) -> Result<()> {
+    match topic {
+        Some(t) => crate::cloud::run_cloud_topic(&t, out, print_html, &kb_root),
+        None => crate::cloud::run_cloud_meta(out, print_html, &kb_root),
+    }
+}
+
+// ── Map ───────────────────────────────────────────────────────────────────────
+
+/// Generate a PCA/UMAP galaxy map of KB chunks.
+///
+/// `learn map`          → all topics → `~/Docs/KB/_meta/knowledge-map.svg`
+/// `learn map <topic>`  → single topic → `~/Docs/KB/<topic>.map.svg`
+pub fn run_map(
+    topic: Option<String>,
+    out: Option<camino::Utf8PathBuf>,
+    kb_root: camino::Utf8PathBuf,
+) -> Result<()> {
+    match topic {
+        Some(t) => crate::map::run_map_topic(&t, out, &kb_root),
+        None => crate::map::run_map_all(out, &kb_root),
+    }
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
