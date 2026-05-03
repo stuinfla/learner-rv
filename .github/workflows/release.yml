@@ -136,7 +136,11 @@ jobs:
             cargo_exclude: "--exclude learn-asr"
 
           # 4. Linux ARM64 -- best-effort (Phase 5), cross-compile via `cross`.
-          # Same learn-asr exclusion as Linux x86_64.
+          # Same learn-asr exclusion as Linux x86_64. Note: `cross` runs the
+          # build inside a Docker container that mounts only the project dir,
+          # so the `../ruvector` sibling path-dependency is unreachable. This
+          # target stays `continue-on-error: true` until ruvector is published
+          # to crates.io or the workflow vendors it under the project tree.
           - target: aarch64-unknown-linux-gnu
             runner: ubuntu-latest
             os: linux
