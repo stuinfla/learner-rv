@@ -206,6 +206,7 @@ fn parse_json_verdict(json: &str) -> Result<ScanVerdict> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::sync::Mutex;
 
     // Process-level mutex serializes tests that share MOCK_AIMDS_VERDICT.
@@ -245,6 +246,7 @@ mod tests {
 
     /// MOCK_AIMDS_VERDICT=safe returns ScanVerdict::Safe without any subprocess.
     #[tokio::test]
+    #[serial]
     #[allow(clippy::await_holding_lock)]
     async fn aimds_scan_safe_text_returns_safe() {
         let _lock = MOCK_VERDICT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -259,6 +261,7 @@ mod tests {
 
     /// MOCK_AIMDS_VERDICT=blocked:<reason> returns ScanVerdict::Blocked(reason).
     #[tokio::test]
+    #[serial]
     #[allow(clippy::await_holding_lock)]
     async fn aimds_scan_blocked_text_returns_blocked() {
         let _lock = MOCK_VERDICT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -274,6 +277,7 @@ mod tests {
     /// When LEARN_AIMDS_BIN points to a nonexistent path, scan_text returns
     /// ScanVerdict::Skipped (AIMDS unavailable) rather than an Err.
     #[tokio::test]
+    #[serial]
     #[allow(clippy::await_holding_lock)]
     async fn aimds_scan_when_npx_missing_returns_skipped() {
         // Acquire the shared lock so MOCK_AIMDS_VERDICT is stable while we
@@ -294,18 +298,21 @@ mod tests {
 
     /// is_required() returns true exactly when LEARN_AIMDS_REQUIRED=1.
     #[test]
+    #[serial]
     fn is_required_returns_true_when_env_set() {
         let _guard = EnvGuard::set("LEARN_AIMDS_REQUIRED", "1");
         assert!(is_required());
     }
 
     #[test]
+    #[serial]
     fn is_required_returns_false_when_env_absent() {
         let _guard = EnvGuard::remove("LEARN_AIMDS_REQUIRED");
         assert!(!is_required());
     }
 
     #[test]
+    #[serial]
     fn is_required_returns_false_when_env_not_one() {
         let _guard = EnvGuard::set("LEARN_AIMDS_REQUIRED", "0");
         assert!(!is_required());

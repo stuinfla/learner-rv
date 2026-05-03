@@ -1,6 +1,7 @@
 //! `learn` — point at a video source, build a knowledge base, query it.
 
 mod commands;
+mod doctor;
 
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
@@ -230,6 +231,11 @@ async fn main() {
 
 // ── Command implementations ──────────────────────────────────────────────────
 
+/// Exit codes for `learn ask`:
+/// - 0 = real cited answer returned
+/// - 1 = error (network, API, parse) — propagated via `Err(LearnError)`
+/// - 2 = topic doesn't exist (KB missing / no videos ever ingested)
+/// - 3 = topic exists but no relevant data (real abstain)
 async fn run_ask(
     topic_str: String,
     question: String,
@@ -242,31 +248,37 @@ async fn run_ask(
     // 1. Open index.
     let index = learn_index::LearnIndex::open(&kb_root, topic.clone())?;
 
-    // 2. Build retriever with per-topic SONA adapter.
+    // 2. Exit 2 if topic has never had any videos ingested (KB missing).
+    if index.manifest().videos.is_empty() {
+        eprintln!("error: topic '{topic_str}' has no data (KB missing or not yet ingested)");
+        process::exit(2);
+    }
+
+    // 3. Build retriever with per-topic SONA adapter.
     let mut retriever =
         learn_retrieve::Retriever::for_topic(index, &topic, embedder_path.as_ref())?;
 
-    // 3. Build BM25 index.
+    // 4. Build BM25 index.
     retriever.refresh_bm25()?;
 
-    // 4. Search with depth-derived k.
+    // 5. Search with depth-derived k.
     let hits = retriever.search(&question, k).await?;
 
     if hits.is_empty() {
-        println!("KB doesn't cover this.");
-        return Ok(());
+        eprintln!("(no relevant chunks found for this question in topic '{topic_str}')");
+        process::exit(3);
     }
 
-    // 5. Synthesize.
+    // 6. Synthesize.
     let synth = learn_synth::select_synthesizer()?;
     let answer = synth.ask(topic.as_str(), &question, &hits).await?;
 
     if answer.abstained {
         eprintln!("(model abstained: insufficient evidence in KB)");
-    } else {
-        println!("{}", answer.text);
+        process::exit(3);
     }
 
+    println!("{}", answer.text);
     Ok(())
 }
 

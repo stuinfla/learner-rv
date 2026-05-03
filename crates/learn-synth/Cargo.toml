@@ -21,3 +21,6 @@ dirs = "5.0"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
 
 ruvllm = { path = "../../../ruvector/crates/ruvllm", default-features = false, features = ["minimal", "async-runtime"] }
+
+[dev-dependencies]
+serial_test = "3"
