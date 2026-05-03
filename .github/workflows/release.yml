@@ -244,7 +244,16 @@ jobs:
 
       # ----- Package ---------------------------------------------------------
 
-      - name: Stage `learn` binary (Unix)
+      # Stage the binary AND the Claude Code skill manifest so a single tarball
+      # extract drops everything the user needs into ~/.claude/skills/learn-rv/.
+      # Tarball layout:
+      #   learn-<target>/
+      #     bin/learn              (or learn.exe on Windows)
+      #     SKILL.md               (Claude Code skill manifest)
+      #     README.md
+      #     LICENSE-MIT, LICENSE-APACHE
+      #     install.sh             (optional helper to symlink bin into PATH)
+      - name: Stage `learn` binary + skill (Unix)
         if: matrix.os != 'windows'
         shell: bash
         env:
@@ -252,34 +261,61 @@ jobs:
         run: |
           set -euo pipefail
           STAGE_DIR="dist/learn-${BUILD_TARGET}"
-          mkdir -p "$STAGE_DIR"
+          mkdir -p "$STAGE_DIR/bin"
           BIN="target/${BUILD_TARGET}/release/learn"
           if [ ! -f "$BIN" ]; then
             echo "::error::Expected binary not found at $BIN"
             ls -la "target/${BUILD_TARGET}/release/" || true
             exit 1
           fi
-          cp "$BIN" "$STAGE_DIR/"
-          [ -f README.md ] && cp README.md "$STAGE_DIR/" || true
-          [ -f LICENSE ]   && cp LICENSE   "$STAGE_DIR/" || true
+          cp "$BIN" "$STAGE_DIR/bin/"
+          [ -f .claude/skills/learn-rv/SKILL.md ] && cp .claude/skills/learn-rv/SKILL.md "$STAGE_DIR/" || true
+          [ -f README.md ]      && cp README.md      "$STAGE_DIR/" || true
+          [ -f LICENSE-MIT ]    && cp LICENSE-MIT    "$STAGE_DIR/" || true
+          [ -f LICENSE-APACHE ] && cp LICENSE-APACHE "$STAGE_DIR/" || true
+          # Generate install.sh — drops the skill folder into ~/.claude/skills/learn-rv/
+          # and symlinks the binary into ~/.cargo/bin (or ~/.local/bin as fallback).
+          cat > "$STAGE_DIR/install.sh" <<'INSTALL_EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          HERE="$(cd "$(dirname "$0")" && pwd)"
+          SKILL_DIR="$HOME/.claude/skills/learn-rv"
+          mkdir -p "$SKILL_DIR/bin"
+          cp "$HERE/SKILL.md" "$SKILL_DIR/SKILL.md"
+          cp "$HERE/bin/learn" "$SKILL_DIR/bin/learn"
+          chmod +x "$SKILL_DIR/bin/learn"
+          # Symlink into PATH so `learn` works from any terminal.
+          if [ -d "$HOME/.cargo/bin" ]; then
+            ln -sf "$SKILL_DIR/bin/learn" "$HOME/.cargo/bin/learn"
+            echo "Installed: $SKILL_DIR/SKILL.md and $HOME/.cargo/bin/learn"
+          else
+            mkdir -p "$HOME/.local/bin"
+            ln -sf "$SKILL_DIR/bin/learn" "$HOME/.local/bin/learn"
+            echo "Installed: $SKILL_DIR/SKILL.md and $HOME/.local/bin/learn"
+            echo "Add ~/.local/bin to your PATH if not already."
+          fi
+          INSTALL_EOF
+          chmod +x "$STAGE_DIR/install.sh"
           tar -czf "dist/learn-${BUILD_TARGET}.tar.gz" -C dist "learn-${BUILD_TARGET}"
 
-      - name: Stage `learn` binary (Windows)
+      - name: Stage `learn` binary + skill (Windows)
         if: matrix.os == 'windows'
         shell: pwsh
         env:
           BUILD_TARGET: ${{ matrix.target }}
         run: |
           $stage = "dist/learn-$env:BUILD_TARGET"
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          New-Item -ItemType Directory -Force -Path "$stage/bin" | Out-Null
           $bin = "target/$env:BUILD_TARGET/release/learn.exe"
           if (-not (Test-Path $bin)) {
             Write-Error "Expected binary not found at $bin"
             exit 1
           }
-          Copy-Item $bin $stage
-          if (Test-Path README.md) { Copy-Item README.md $stage }
-          if (Test-Path LICENSE)   { Copy-Item LICENSE   $stage }
+          Copy-Item $bin "$stage/bin/"
+          if (Test-Path .claude/skills/learn-rv/SKILL.md) { Copy-Item .claude/skills/learn-rv/SKILL.md $stage }
+          if (Test-Path README.md)      { Copy-Item README.md      $stage }
+          if (Test-Path LICENSE-MIT)    { Copy-Item LICENSE-MIT    $stage }
+          if (Test-Path LICENSE-APACHE) { Copy-Item LICENSE-APACHE $stage }
           Compress-Archive -Path $stage -DestinationPath "dist/learn-$env:BUILD_TARGET.zip" -Force
 
       - name: Upload release artifact

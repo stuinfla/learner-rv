@@ -13,6 +13,14 @@ fixtures/cache/
 .mcp.json
 .openclaw/
 
+# But DO ship our own skill folder — it's the user-facing install asset
+!.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/learn-rv/
+!.claude/skills/learn-rv/**
+
 # Backup directories from refactors
 crates/*.bak/
 *.bak/

@@ -34,18 +34,35 @@ Run `learn --help` for all 14 subcommands, or `learn <command> --help` for any o
 
 ### One-time setup
 
+**Easy path (no Rust toolchain required, no compile):**
+
 ```bash
-# 1. Clone and build the binary (M-series Mac):
+# Pick the right tarball for your platform from
+#   https://github.com/stuinfla/learner-rv/releases/latest
+# Then extract + run install.sh:
+
+curl -L https://github.com/stuinfla/learner-rv/releases/latest/download/learn-aarch64-apple-darwin.tar.gz \
+  | tar xz -C /tmp
+/tmp/learn-aarch64-apple-darwin/install.sh
+```
+
+`install.sh` drops the skill into `~/.claude/skills/learn-rv/`, symlinks the binary to `~/.cargo/bin/learn`, and you're done. Open Claude Code and just say what you want.
+
+**Available targets:** `aarch64-apple-darwin` (M-series Mac), `x86_64-apple-darwin` (Intel Mac), `x86_64-unknown-linux-gnu` (Linux x64), `aarch64-unknown-linux-gnu` (Linux ARM64), `x86_64-pc-windows-msvc` (Windows).
+
+<details><summary>Build from source (Rust toolchain required)</summary>
+
+```bash
 git clone https://github.com/stuinfla/learner-rv.git
 cd learner-rv
 cargo install --path crates/learn-cli
-
-# 2. (Optional but recommended) install the Claude Code skill:
 mkdir -p ~/.claude/skills/learn-rv
 cp .claude/skills/learn-rv/SKILL.md ~/.claude/skills/learn-rv/SKILL.md
 ```
 
-After step 1 you have the `learn` CLI. After step 2 it also works as a global Claude Code skill — both paths use the same binary and produce identical results.
+This compiles the full workspace (~5min including whisper-rs and ONNX). You only need this path if you want to modify the source.
+
+</details>
 
 ![Learn-RV capability matrix: six capability cards covering ownership, citations, self-learning, on-device, RuVector-native, scale](assets/diagrams/capability-matrix.svg)
 
