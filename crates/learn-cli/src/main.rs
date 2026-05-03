@@ -36,6 +36,9 @@ enum Cmd {
         /// Disable Sonnet-vision frame captioning (enabled by default).
         #[arg(long)]
         no_frames: bool,
+        /// Explicitly enable Sonnet-vision frame captioning (default behaviour; symmetric with --no-frames).
+        #[arg(long, conflicts_with = "no_frames")]
+        with_frames: bool,
         /// Maximum number of keyframes to extract per video (default: 60).
         #[arg(long, default_value = "60")]
         max_frames: usize,
@@ -120,8 +123,41 @@ enum Cmd {
     Compact { topic: String },
 }
 
+/// Print the friendly orientation block and exit 0.
+/// Called when the binary is invoked with no arguments.
+fn print_orientation() -> ! {
+    println!(
+        r#"Learn-RV — Your tool for building intelligent knowledge bases, stored in RuVector.
+
+▶ 30-second quickstart
+  learn ingest "<youtube-url>" --topic <name>     Add a video, channel, playlist, or search
+  learn ask <topic> "<question>"                  Cited answer from the KB
+  learn list                                      See every KB you've built
+
+▶ Going deeper
+  learn study <topic> --depth medium              Autonomous curriculum (auto-discover videos)
+  learn apply <topic> "<task>"                    Generate a cited artifact (recipe, plan, code)
+  learn watch <topic> --cadence weekly            Schedule recurring channel ingestion
+
+▶ All 14 commands:    learn --help
+▶ Per-command flags:  learn <command> --help
+
+▶ In Claude Code, you don't type any of this.
+  Just say what you want: "build me a KB on french cooking technique"
+  Claude finds the learn-rv skill and runs the right commands for you.
+
+KB location:    ~/Docs/KB/<topic>.rvf
+Skill manifest: ~/.claude/skills/learn-rv/SKILL.md
+Repo:           https://github.com/stuinfla/learner-rv"#
+    );
+    std::process::exit(0);
+}
+
 #[tokio::main]
 async fn main() {
+    if std::env::args().count() == 1 {
+        print_orientation();
+    }
     init_tracing();
     let cli = Cli::parse();
     let kb_root = resolve_kb_root(cli.kb_root);
@@ -133,6 +169,7 @@ async fn main() {
             since,
             limit,
             no_frames,
+            with_frames: _,
             max_frames,
             force,
         } => {
