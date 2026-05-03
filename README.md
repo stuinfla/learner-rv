@@ -32,6 +32,16 @@ learn list claude-skills
 
 Run `learn --help` for all 14 subcommands, or `learn <command> --help` for any one of them.
 
+### What works on which platform
+
+| Platform | Released binary? | `learn ingest` | `learn ask` | Frames | Status |
+|---|---|---|---|---|---|
+| M-series Mac (`aarch64-apple-darwin`) | ✅ v0.1.4 | ✅ | ✅ | ✅ | Primary, fully supported |
+| Intel Mac (`x86_64-apple-darwin`) | ⚠ build from source | ✅ | ✅ | ✅ | macos-13 runner deprecated by GitHub |
+| Linux x86_64 (`x86_64-unknown-linux-gnu`) | ✅ v0.1.4 | ✅ (captions-only path) | ✅ | ✅ (vision API only, no whisper) | Best-effort, works |
+| Linux ARM64 (`aarch64-unknown-linux-gnu`) | ❌ | build from source | ✅ | ✅ | Cross-Docker can't reach RuVector path-deps |
+| Windows (`x86_64-pc-windows-msvc`) | ❌ | build from source (no whisper) | ✅ | ✅ | `learn-asr` metal feature is Apple-only |
+
 ### One-time setup
 
 **Easy path (no Rust toolchain required, no compile):**
@@ -48,7 +58,7 @@ curl -L https://github.com/stuinfla/learner-rv/releases/latest/download/learn-aa
 
 `install.sh` drops the skill into `~/.claude/skills/learn-rv/`, symlinks the binary to `~/.cargo/bin/learn`, and you're done. Open Claude Code and just say what you want.
 
-**Available targets:** `aarch64-apple-darwin` (M-series Mac), `x86_64-apple-darwin` (Intel Mac), `x86_64-unknown-linux-gnu` (Linux x64), `aarch64-unknown-linux-gnu` (Linux ARM64), `x86_64-pc-windows-msvc` (Windows).
+**Released binaries (v0.1.4):** `learn-aarch64-apple-darwin.tar.gz` (M-series Mac) and `learn-x86_64-unknown-linux-gnu.tar.gz` (Linux x64). Other targets (Intel Mac, Linux ARM64, Windows) — build from source; see the platform table above for caveats.
 
 <details><summary>Build from source (Rust toolchain required)</summary>
 
@@ -608,13 +618,15 @@ Full test pyramid, acceptance criteria, and tooling details: `docs/testing.md`.
 
 <details><summary>⚠️ Honest caveats (what doesn't work yet)</summary>
 
-Current state, 2026-05-02:
+Current state, 2026-05-02 (v0.1.4 / v0.1.5):
 
-- **AIMDS package not on public npm.** The query path scans inbound and outbound text via `npx @ruflo/aidefence`. The package itself returns 404 on npm right now — the wiring is correct, but until the package ships you'll see a `WARN` line and the scan returns `Skipped`. Set `LEARN_AIMDS_BIN=/path/to/your/aidefence/binary` to point at a private build, or `LEARN_AIMDS_REQUIRED=1` to fail closed when the binary is absent.
-- **Whisper fallback is wired but not exercised.** When yt-dlp can't pull captions, the design says fall through to local Whisper; today's `learn ingest` errors out on missing captions. Phase 2D-plus.
-- **`@handle` and `ytsearch:` sources accepted by validator but not yet ingested.** Channel-handle and search-pseudo-scheme sources pass the safety validator (no shell injection), but the URL parser later rejects them. Single-URL and playlist URLs work today.
-- **ruvector-consciousness KPI is a v1 placeholder.** The upstream crate exists with full IIT Φ implementation but expects an n×n transition matrix, not embedding vectors. The current KPI uses spectral primitives over the embedding similarity graph; will swap when an embedding-native upstream interface ships.
-- **DiskANN scale path uses a private file format.** `LearnIndexLarge::compact` reads `vectors.bin` directly. Stable today; track for Phase 3 hardening if the upstream `ruvector-diskann` save format changes.
+- **Linux ARM64 + Windows binaries are not published.** Use the M-series Mac or Linux x86_64 tarballs, or build from source. Reasons: `whisper-rs` metal feature is Apple-only (no Windows); `cross` Docker cannot reach the `../ruvector` sibling path-dep on aarch64-linux release builds.
+- **Coherence KPI** is a placeholder-with-real-spectral-primitives, not a research-grade IIT Φ. The integrated-information score uses Fiedler eigenvalue × NN-cosine density and reads as `Disjoint` / `Loose` / `Coherent` / `HighlyIntegrated`. Useful as a relative health signal across topics, not an absolute consciousness measure.
+- **Whisper ASR fallback** is only exercised on captionless videos. The captions-first path covers ~95% of YouTube content. If you need to ingest audio with no captions, ensure `ffmpeg` and `ggml-base.en.bin` are present (`learn doctor` checks both).
+- **AIMDS guardrails** ship in-tree (regex-based prompt-injection + PII detection on inbound and outbound). For research-grade safety, plug in `@ruflo/aidefence` when it's published — the subprocess fallback path is preserved (`LEARN_AIMDS_BIN`, `LEARN_AIMDS_REQUIRED`).
+- **SONA self-learning** works at retrieval time (per-topic LoRA adapter loaded by `Retriever::for_topic`), but the feedback signal that updates the adapter requires explicit `record_feedback` calls — not yet wired into a passive thumbs-up/down UI on `learn ask`. Manual API only.
+- **Phase 4D static governance** (`npx ruflo adr-validate` / `ddd-validate`) was closed via the Claude Code skill system (`ruflo-adr:adr-index`, `ruflo-ddd:ddd-validate`); both produced clean output and are persisted in AgentDB.
+- **DiskANN scale path** uses a private file format. `LearnIndexLarge::compact` reads `vectors.bin` directly. Stable today; track for Phase 3 hardening if the upstream `ruvector-diskann` save format changes.
 
 </details>
 
