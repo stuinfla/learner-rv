@@ -74,7 +74,9 @@ Prints the topic's vector count, segment count, file size, plus an integrated-in
 
 ![learn-rs top-level invocation flow](assets/diagrams/top-level-invocation.svg)
 
-```
+<details><summary>ASCII fallback (for AI/accessibility)</summary>
+
+```text
                   ┌──────────────────────────────────────────────┐
                   │   "I want to learn how to make croissants"    │
                   │   "Ingest this playlist on indexed arbitrage" │
@@ -105,11 +107,15 @@ Prints the topic's vector count, segment count, file size, plus an integrated-in
                           └───────────────────────┘
 ```
 
+</details>
+
 ### Crate layout
 
 ![learn-rs architecture: CLI, pipeline crates, core contracts, RVF format](assets/diagrams/architecture.svg)
 
-```
+<details><summary>ASCII fallback (for AI/accessibility)</summary>
+
+```text
                 ┌────────────────────────────────────────────────┐
                 │                  learn-cli                      │
                 │   (clap, smart routing, slug auto-derive)       │
@@ -156,13 +162,17 @@ Prints the topic's vector count, segment count, file size, plus an integrated-in
                   └────────────────────────────────────────┘
 ```
 
+</details>
+
 Twelve Rust crates, single workspace, single binary. Every architectural choice is locked in code, not in prose: contracts live in `learn-core` and the rest of the system consumes them.
 
 ### Ingest pipeline
 
 ![learn-rs ingest pipeline: source through transcription, chunking, embedding, indexing, graph extraction, KB file](assets/diagrams/ingest-pipeline.svg)
 
-```
+<details><summary>ASCII fallback (for AI/accessibility)</summary>
+
+```text
                         ┌──────────────────────┐
                         │   source: URL / path  │
                         │   playlist / channel  │
@@ -224,11 +234,15 @@ Twelve Rust crates, single workspace, single binary. Every architectural choice 
                        └────────────────────┘
 ```
 
+</details>
+
 ### Query path
 
 ![learn-rs query path: question through expansion, hybrid retrieval, rerank, MMR, synthesis, cited answer](assets/diagrams/query-path.svg)
 
-```
+<details><summary>ASCII fallback (for AI/accessibility)</summary>
+
+```text
               QUERY PATH
 
                     ┌─────────────────┐
@@ -279,6 +293,8 @@ Twelve Rust crates, single workspace, single binary. Every architectural choice 
               └────────────────────────────────┘
 ```
 
+</details>
+
 ### Why each decision
 
 | Decision | What it buys |
@@ -302,7 +318,9 @@ Twelve Rust crates, single workspace, single binary. Every architectural choice 
 
 ![learn-rs storage layout: one .rvf file per topic plus _graph and _meta sidecar directories](assets/diagrams/storage-model.svg)
 
-```
+<details><summary>ASCII fallback (for AI/accessibility)</summary>
+
+```text
 ~/Docs/KB/
 ├── french-cooking.rvf       ← chunks · embeddings · HNSW · witness chain
 ├── indexed-arbitrage.rvf    ← fully isolated from french-cooking
@@ -317,6 +335,8 @@ Twelve Rust crates, single workspace, single binary. Every architectural choice 
     ├── <video_id>.info.json         yt-dlp metadata cache
     └── <video_id>.vtt               raw captions cache
 ```
+
+</details>
 
 Per-topic isolation is total: separate files, separate HNSW indices, no shared state. Drop a topic by deleting one file. Move the whole thing to another machine and it just works.
 
@@ -349,9 +369,13 @@ One topic of knowledge → one `.rvf` file. The file *is* the database. There is
 
 ![Learn-RV learning flywheel: ingest, ask, feedback, adapt — each cycle sharpens the topic-specialized embedder](assets/diagrams/learning-flywheel.svg)
 
-```
+<details><summary>ASCII fallback (for AI/accessibility)</summary>
+
+```text
 INGEST → ASK → FEEDBACK → ADAPT → (back to INGEST, but smarter)
 ```
+
+</details>
 
 Every time you query the KB and signal which answers were helpful, SONA tunes a per-topic LoRA adapter that specializes the embedder for *your* domain. After 50 cooking videos, the embedder is cooking-specialized. After 50 arbitrage videos, it's arbitrage-specialized. Each turn of the flywheel makes the next one better.
 
@@ -417,7 +441,9 @@ cargo install --path crates/learn-cli
 
 ![learn-rs test pyramid: six levels from unit tests at base to E2E smoke at top, all gated in CI](assets/diagrams/test-pyramid.svg)
 
-```
+<details><summary>ASCII fallback (for AI/accessibility)</summary>
+
+```text
                      ┌─────────────────────────┐
                      │  Level 6: E2E smoke      │
                      │   (real video, real KB)  │
@@ -439,6 +465,8 @@ cargo install --path crates/learn-cli
                      │   cargo test --workspace │
                      └─────────────────────────┘
 ```
+
+</details>
 
 CI gate (`cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test --workspace`, `cargo llvm-cov --summary-only`) must be green before any commit lands.
 
