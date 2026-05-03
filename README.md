@@ -4,9 +4,9 @@ Your tool for building intelligent knowledge bases, stored in RuVector.
 
 Point Learn-RV at a YouTube video — or a channel, playlist, or even a search like "french cooking technique" — and it builds a queryable knowledge base on disk. Every `learn ask` returns answers grounded in specific timestamps in specific videos, not hallucinated. Each topic is a single `.rvf` file. The KB sharpens with use through per-topic adaptive embeddings.
 
-> **End-to-end verified 2026-05-03 (v0.1.5):** ingested `kDw3vno7tNM` into `~/Docs/KB/verified-demo.rvf` — 27 chunks, 109 KB, frames captioned via Sonnet vision, coherence integrated=0.65 workspace=1.00 [Coherent]. Cited Anthropic answer with `[1][2][3]` timestamp links verified.
+> **End-to-end verified 2026-05-03 (v0.2.0):** ingested `kDw3vno7tNM` into `~/Docs/KB/verified-demo.rvf` — 27 chunks, 109 KB, frames captioned via Sonnet vision, coherence integrated=0.65 workspace=1.00 [Coherent]. Cited Anthropic answer with `[1][2][3]` timestamp links verified.
 
-## Two ways to use it
+## Three ways to use it
 
 ### 🤖 As a Claude Code skill (no terminal — just talk)
 
@@ -30,15 +30,54 @@ learn ask claude-skills "What does the speaker recommend for skill design?"
 learn list claude-skills
 ```
 
-Run `learn --help` for all 14 subcommands, or `learn <command> --help` for any one of them.
+**Chat with the KB (multi-turn, with conversation memory):**
+
+```bash
+learn chat my-topic
+> what hydration should I start at?
+Assistant: 78% is what most beginners aim for [1]. Above 80% gets sticky [2].
+> my dough feels too wet after autolyse
+Assistant: Given you started at 78% and noted stickiness post-autolyse...
+```
+
+Sessions persist to `~/Docs/KB/_chat/<topic>/<id>.jsonl`. Resume with:
+
+```bash
+learn chat my-topic --resume <session-id>
+```
+
+Run `learn --help` for all 17 subcommands, or `learn <command> --help` for any one of them.
+
+### 🔌 As an MCP server for Claude Code (the KB drives processes end-to-end)
+
+In v0.2.0+, `learn serve <topic>` exposes the KB as an MCP server. Add this to your Claude Code MCP config (`~/.claude/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "learn-rv": {
+      "command": "learn",
+      "args": ["serve", "your-topic-name"]
+    }
+  }
+}
+```
+
+Now Claude Code has three new tools:
+
+- `kb_query(question, k?)` — hybrid retrieval against your topic
+- `kb_synthesize(question, hits)` — cited answer grounded in retrieved chunks
+- `kb_list_videos()` — discovery of what's in the topic
+
+In any Claude session, you can now say things like *"using my french-cooking topic, walk me through making croissants — set timers, write the schedule to disk, adjust if I tell you my kitchen is 68°F"*. Claude calls `kb_query` at each step, generates instructions grounded in your videos, and uses ITS OWN tools (file write, shell, web search) for the artifact output. The KB is the brain, Claude is the executor, every action traces back to a video chunk citation.
 
 ### What works on which platform
 
 | Platform | Released binary? | `learn ingest` | `learn ask` | Frames | Status |
 |---|---|---|---|---|---|
-| M-series Mac (`aarch64-apple-darwin`) | ✅ v0.1.4 | ✅ | ✅ | ✅ | Primary, fully supported |
+| M-series Mac (`aarch64-apple-darwin`) | ✅ v0.2.0 | ✅ | ✅ | ✅ | Primary, fully supported |
 | Intel Mac (`x86_64-apple-darwin`) | ⚠ build from source | ✅ | ✅ | ✅ | macos-13 runner deprecated by GitHub |
-| Linux x86_64 (`x86_64-unknown-linux-gnu`) | ✅ v0.1.4 | ✅ (captions-only path) | ✅ | ✅ (vision API only, no whisper) | Best-effort, works |
+| Linux x86_64 (`x86_64-unknown-linux-gnu`) | ✅ v0.2.0 | ✅ (captions-only path) | ✅ | ✅ (vision API only, no whisper) | Best-effort, works |
 | Linux ARM64 (`aarch64-unknown-linux-gnu`) | ❌ | build from source | ✅ | ✅ | Cross-Docker can't reach RuVector path-deps |
 | Windows (`x86_64-pc-windows-msvc`) | ❌ | build from source (no whisper) | ✅ | ✅ | `learn-asr` metal feature is Apple-only |
 
@@ -58,7 +97,7 @@ curl -L https://github.com/stuinfla/learner-rv/releases/latest/download/learn-aa
 
 `install.sh` drops the skill into `~/.claude/skills/learn-rv/`, symlinks the binary to `~/.cargo/bin/learn`, and you're done. Open Claude Code and just say what you want.
 
-**Released binaries (v0.1.4):** `learn-aarch64-apple-darwin.tar.gz` (M-series Mac) and `learn-x86_64-unknown-linux-gnu.tar.gz` (Linux x64). Other targets (Intel Mac, Linux ARM64, Windows) — build from source; see the platform table above for caveats.
+**Released binaries (v0.2.0):** `learn-aarch64-apple-darwin.tar.gz` (M-series Mac) and `learn-x86_64-unknown-linux-gnu.tar.gz` (Linux x64). Other targets (Intel Mac, Linux ARM64, Windows) — build from source; see the platform table above for caveats.
 
 <details><summary>Build from source (Rust toolchain required)</summary>
 
@@ -74,11 +113,13 @@ This compiles the full workspace (~5min including whisper-rs and ONNX). You only
 
 </details>
 
+> v0.2.0 adds chat (KB as tutor) and MCP server (KB as engine).
+
 ![Learn-RV capability matrix: six capability cards covering ownership, citations, self-learning, on-device, RuVector-native, scale](assets/diagrams/capability-matrix.svg)
 
 ---
 
-<details><summary>📦 What you can do with it (the 14 commands)</summary>
+<details><summary>📦 What you can do with it (17 commands)</summary>
 
 ### Three ways in
 
@@ -115,6 +156,14 @@ learn status french-cooking
 ```
 
 Prints the topic's vector count, segment count, file size, plus an integrated-information KPI scoring how coherent the corpus is — `Disjoint`, `Loose`, `Coherent`, or `HighlyIntegrated` — so you can see at a glance whether the videos in this topic actually form a coherent body of knowledge.
+
+### New in v0.2.0
+
+| Command | What it does | Example |
+|---|---|---|
+| `learn chat <topic>` | Multi-turn cited dialog with the KB | `learn chat french-cooking` |
+| `learn serve <topic>` | MCP server for Claude Code integration | `learn serve french-cooking` |
+| `learn doctor` | Diagnostic — checks deps, KB, env, latest release | `learn doctor` |
 
 ### The remaining subcommands
 
@@ -618,7 +667,7 @@ Full test pyramid, acceptance criteria, and tooling details: `docs/testing.md`.
 
 <details><summary>⚠️ Honest caveats (what doesn't work yet)</summary>
 
-Current state, 2026-05-02 (v0.1.4 / v0.1.5):
+Current state, 2026-05-03 (v0.2.0):
 
 - **Linux ARM64 + Windows binaries are not published.** Use the M-series Mac or Linux x86_64 tarballs, or build from source. Reasons: `whisper-rs` metal feature is Apple-only (no Windows); `cross` Docker cannot reach the `../ruvector` sibling path-dep on aarch64-linux release builds.
 - **Coherence KPI** is a placeholder-with-real-spectral-primitives, not a research-grade IIT Φ. The integrated-information score uses Fiedler eigenvalue × NN-cosine density and reads as `Disjoint` / `Loose` / `Coherent` / `HighlyIntegrated`. Useful as a relative health signal across topics, not an absolute consciousness measure.
