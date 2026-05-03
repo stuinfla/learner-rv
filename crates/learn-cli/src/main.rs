@@ -7,6 +7,7 @@ use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use learn_core::Topic;
 use std::process;
+use uuid::Uuid;
 
 #[derive(Parser, Debug)]
 #[command(name = "learn", version, about = "Pure-Rust video knowledge-base CLI")]
@@ -125,6 +126,28 @@ enum Cmd {
     /// First-60-seconds environment diagnostic: check deps, storage, network,
     /// version, and config.  Exit 0 when all required checks pass.
     Doctor,
+    /// Interactive multi-turn chat session grounded in a topic KB.
+    Chat {
+        topic: String,
+        /// Resume an existing session by UUID.
+        #[arg(long)]
+        resume: Option<Uuid>,
+        /// Retrieval depth: quick (5) | medium (10) | deep (20).
+        #[arg(long, default_value = "medium")]
+        depth: String,
+    },
+    /// Start an MCP server exposing the KB as a tool surface for Claude Code.
+    ///
+    /// The server reads JSON-RPC 2.0 from stdin and writes responses to stdout.
+    /// Add it to your Claude Code MCP config and the kb_query / kb_synthesize /
+    /// kb_list_videos tools become available in any Claude Code session.
+    Serve {
+        /// Topic whose KB to expose.
+        topic: String,
+        /// Transport: only "stdio" is supported (default).
+        #[arg(long, default_value = "stdio")]
+        transport: String,
+    },
 }
 
 /// Print the friendly orientation block and exit 0.
@@ -143,7 +166,7 @@ fn print_orientation() -> ! {
   learn apply <topic> "<task>"                    Generate a cited artifact (recipe, plan, code)
   learn watch <topic> --cadence weekly            Schedule recurring channel ingestion
 
-▶ All 14 commands:    learn --help
+▶ All 15 commands:    learn --help
 ▶ Per-command flags:  learn <command> --help
 
 ▶ In Claude Code, you don't type any of this.
@@ -230,6 +253,12 @@ async fn main() {
         Cmd::Eval { topic } => commands::run_regression(topic, kb_root).await,
         Cmd::Forget { topic, video } => commands::run_forget(topic, video, kb_root),
         Cmd::Compact { topic } => commands::run_compact(topic, kb_root),
+        Cmd::Chat {
+            topic,
+            resume,
+            depth,
+        } => commands::run_chat(topic, resume, depth, kb_root).await,
+        Cmd::Serve { topic, transport } => commands::run_serve(topic, transport, kb_root),
         // Doctor is dispatched above; this arm is unreachable but required by exhaustiveness.
         Cmd::Doctor => unreachable!("doctor dispatched before match"),
     };

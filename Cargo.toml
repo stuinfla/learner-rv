@@ -6,6 +6,7 @@ members = [
     "crates/learn-acquire",
     "crates/learn-asr",
     "crates/learn-chunk",
+    "crates/learn-chat",
     "crates/learn-discover",
     "crates/learn-embed",
     "crates/learn-frames",
@@ -16,6 +17,7 @@ members = [
     "crates/learn-eval",
     "crates/learn-coherence",
     "crates/learn-reasoning",
+    "crates/learn-serve",
     "tests",                     # workspace-level integration tests
 ]
 
@@ -31,6 +33,7 @@ learn-core      = { path = "crates/learn-core" }
 learn-frames    = { path = "crates/learn-frames" }
 learn-acquire   = { path = "crates/learn-acquire" }
 learn-asr       = { path = "crates/learn-asr" }
+learn-chat      = { path = "crates/learn-chat" }
 learn-chunk     = { path = "crates/learn-chunk" }
 learn-discover  = { path = "crates/learn-discover" }
 learn-embed     = { path = "crates/learn-embed" }
@@ -41,9 +44,11 @@ learn-synth     = { path = "crates/learn-synth" }
 learn-eval      = { path = "crates/learn-eval" }
 learn-coherence = { path = "crates/learn-coherence" }
 learn-reasoning = { path = "crates/learn-reasoning" }
+learn-serve     = { path = "crates/learn-serve" }
 
 anyhow      = "1"
 thiserror   = "2"
+uuid        = { version = "1", features = ["v4", "serde"] }
 serde       = { version = "1", features = ["derive"] }
 serde_json  = "1"
 bincode     = { version = "2.0.0-rc.3", features = ["serde"] }

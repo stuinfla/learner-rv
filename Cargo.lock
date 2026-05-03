@@ -1641,6 +1641,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "learn-chat"
+version = "0.1.5"
+dependencies = [
+ "anyhow",
+ "camino",
+ "chrono",
+ "dirs 6.0.0",
+ "learn-core",
+ "learn-embed",
+ "learn-index",
+ "learn-retrieve",
+ "learn-synth",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "learn-chunk"
 version = "0.1.5"
 dependencies = [
@@ -1661,6 +1681,7 @@ dependencies = [
  "colored",
  "dirs 6.0.0",
  "learn-acquire",
+ "learn-chat",
  "learn-chunk",
  "learn-coherence",
  "learn-core",
@@ -1671,6 +1692,7 @@ dependencies = [
  "learn-graph",
  "learn-index",
  "learn-retrieve",
+ "learn-serve",
  "learn-synth",
  "reqwest",
  "serde_json",
@@ -1679,6 +1701,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+ "uuid",
  "which",
 ]
 
@@ -1840,6 +1863,27 @@ dependencies = [
  "learn-embed",
  "learn-index",
  "tantivy",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "learn-serve"
+version = "0.1.5"
+dependencies = [
+ "anyhow",
+ "blake3",
+ "camino",
+ "chrono",
+ "dirs 6.0.0",
+ "learn-core",
+ "learn-embed",
+ "learn-index",
+ "learn-retrieve",
+ "learn-synth",
+ "serde",
+ "serde_json",
  "tempfile",
  "tokio",
  "tracing",

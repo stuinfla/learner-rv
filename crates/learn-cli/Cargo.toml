@@ -14,6 +14,7 @@ path = "src/main.rs"
 [dependencies]
 learn-core.workspace = true
 learn-acquire.workspace = true
+learn-chat.workspace = true
 learn-frames.workspace = true
 learn-chunk.workspace = true
 learn-coherence.workspace = true
@@ -24,6 +25,7 @@ learn-graph.workspace = true
 learn-retrieve.workspace = true
 learn-synth.workspace = true
 learn-eval.workspace = true
+learn-serve.workspace = true
 
 async-trait = "0.1"
 clap.workspace = true
@@ -33,6 +35,7 @@ tracing-subscriber.workspace = true
 camino.workspace = true
 url.workspace = true
 serde_json.workspace = true
+uuid.workspace = true
 dirs = "6"
 tempfile = "3"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }

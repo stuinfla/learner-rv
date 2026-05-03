@@ -1397,6 +1397,225 @@ fn truncate(s: &str, max: usize) -> String {
     }
 }
 
+// ── SONA flush helper ────────────────────────────────────────────────────────
+
+/// Flush the SONA adapter at session end, catching any upstream panics.
+///
+/// ruvector-sona can panic on freshly-zeroed MicroLoRA weights when
+/// `down_proj` is uninitialized (lora.rs index-out-of-bounds). We treat that
+/// as a non-fatal best-effort flush; the session JSONL is already persisted.
+///
+/// This spawns into `tokio::task::spawn_blocking` to keep the panic isolated
+/// from the main async task, avoiding a runtime-within-runtime error.
+async fn run_sona_flush(
+    topic: learn_core::Topic,
+    embedder_path: camino::Utf8PathBuf,
+    session: learn_chat::ChatSession,
+) {
+    let _ = tokio::task::spawn_blocking(move || {
+        let cfg = learn_embed::EmbedConfig {
+            model_dir: embedder_path,
+            ..Default::default()
+        };
+        let Ok(mut embedder) = learn_embed::Embedder::for_topic(&topic, &cfg) else {
+            return;
+        };
+        // Build query + chunk_ids inline without async to avoid nested runtime.
+        let assistant_turns: Vec<_> = session
+            .history
+            .iter()
+            .filter(|t| t.role == learn_chat::Role::Assistant)
+            .collect();
+        if assistant_turns.is_empty() {
+            return;
+        }
+        let chunk_ids: Vec<String> = assistant_turns
+            .iter()
+            .flat_map(|t| t.hits.iter().flatten())
+            .map(|h| h.chunk.chunk_id.clone())
+            .collect();
+        if chunk_ids.is_empty() {
+            return;
+        }
+        let id_refs: Vec<&str> = chunk_ids.iter().map(|s| s.as_str()).collect();
+        let query = session
+            .history
+            .first()
+            .map(|t| t.content.as_str())
+            .unwrap_or("session");
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            embedder.record_feedback(query, &id_refs, learn_embed::Outcome::Helpful)
+        }));
+        if result.is_err() {
+            tracing::warn!("SONA adapter flush panicked (upstream bug); session data intact");
+        }
+    })
+    .await;
+}
+
+// ── Chat ─────────────────────────────────────────────────────────────────────
+
+/// Run the interactive multi-turn chat REPL for `topic`.
+///
+/// If `resume_id` is given, restore the existing session. Otherwise start a new
+/// one. Reads lines from stdin; slash commands `/help`, `/save`, `/cite`,
+/// `/quit` are handled. Empty input at EOF exits cleanly.
+pub async fn run_chat(
+    topic_str: String,
+    resume_id: Option<uuid::Uuid>,
+    depth: String,
+    kb_root: Utf8PathBuf,
+) -> Result<()> {
+    use learn_chat::{new_session, resume_session};
+    use std::io::{BufRead, Write};
+
+    let topic = learn_core::Topic::new(&topic_str)?;
+    let embedder_path = super::default_model_dir();
+    let k = crate::depth_to_k(&depth);
+
+    // Open index and build retriever.
+    let index = learn_index::LearnIndex::open(&kb_root, topic.clone())?;
+    if index.manifest().videos.is_empty() {
+        eprintln!("error: topic '{topic_str}' has no data (KB missing or not yet ingested)");
+        std::process::exit(2);
+    }
+    let mut retriever =
+        learn_retrieve::Retriever::for_topic(index, &topic, embedder_path.as_ref())?;
+    retriever.refresh_bm25()?;
+
+    let synth = learn_synth::select_synthesizer()?;
+
+    // Create or restore session.
+    let mut session = match resume_id {
+        Some(id) => {
+            let s = resume_session(id, &topic, &kb_root)?;
+            eprintln!("Resumed session {} ({} prior turns)", s.id, s.history.len());
+            s
+        }
+        None => {
+            let s = new_session(&topic, &kb_root, k)?;
+            eprintln!("New session {} — topic: {topic_str}", s.id);
+            s
+        }
+    };
+
+    let stdin = std::io::stdin();
+    let stdout = std::io::stdout();
+
+    loop {
+        // Print prompt.
+        {
+            let mut out = stdout.lock();
+            out.write_all(b"> ").ok();
+            out.flush().ok();
+        }
+
+        // Read a line.
+        let line = {
+            let mut buf = String::new();
+            let mut locked = stdin.lock();
+            match locked.read_line(&mut buf) {
+                Ok(0) => break, // EOF
+                Ok(_) => buf,
+                Err(_) => break,
+            }
+        };
+        let trimmed = line.trim();
+
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        // Handle slash commands.
+        if let Some(rest) = trimmed.strip_prefix('/') {
+            let cmd = rest.split_whitespace().next().unwrap_or(rest);
+            match cmd {
+                "quit" | "q" => break,
+                "save" => {
+                    eprintln!(
+                        "Session auto-saved to KB/_chat/{}/{}.jsonl",
+                        topic_str, session.id
+                    );
+                }
+                "cite" => {
+                    let last_cits: Vec<_> = session
+                        .history
+                        .iter()
+                        .rev()
+                        .find(|t| t.role == learn_chat::Role::Assistant)
+                        .map(|t| t.citations.clone())
+                        .unwrap_or_default();
+                    if last_cits.is_empty() {
+                        println!("No citations in the last answer.");
+                    } else {
+                        for (i, c) in last_cits.iter().enumerate() {
+                            println!(
+                                "[{}] {} — {}",
+                                i + 1,
+                                c.url,
+                                c.title.as_deref().unwrap_or("")
+                            );
+                        }
+                    }
+                }
+                "help" | "?" => {
+                    println!("Slash commands: /help  /cite  /save  /quit");
+                }
+                _ => {
+                    println!("Unknown command /{cmd}. Try /help");
+                }
+            }
+            continue;
+        }
+
+        // Regular question.
+        match session
+            .ask(trimmed, &mut retriever, synth.as_ref(), &kb_root)
+            .await
+        {
+            Ok(answer) => {
+                println!("Assistant: {}", answer.text);
+                if !answer.citations.is_empty() {
+                    println!();
+                    for (i, c) in answer.citations.iter().enumerate() {
+                        println!("[{}] {}", i + 1, c.url);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("error: {e}");
+            }
+        }
+        println!();
+    }
+
+    // End session: flush SONA adapter once (gated to session-end per architect).
+    // ruvector-sona can panic on freshly-zeroed MicroLoRA weights (upstream bug).
+    // A failed flush is non-fatal — the session data is already persisted.
+    let session_id = session.id;
+    run_sona_flush(topic, embedder_path, session).await;
+
+    eprintln!("Session {} ended.", session_id);
+    Ok(())
+}
+
+// ── Serve ─────────────────────────────────────────────────────────────────────
+
+/// Start the MCP server for `topic` using `transport` (only "stdio" supported).
+///
+/// Reads JSON-RPC 2.0 from stdin, dispatches to `kb_query`, `kb_synthesize`,
+/// or `kb_list_videos`, and writes JSON-RPC responses to stdout.
+pub fn run_serve(topic: String, transport: String, kb_root: Utf8PathBuf) -> Result<()> {
+    if transport != "stdio" {
+        return Err(LearnError::Retrieve(format!(
+            "unsupported transport '{transport}'; only 'stdio' is supported"
+        )));
+    }
+    let cfg = learn_serve::ServerConfig { topic, kb_root };
+    learn_serve::run_server(cfg).map_err(|e| LearnError::Retrieve(format!("mcp server: {e}")))
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
