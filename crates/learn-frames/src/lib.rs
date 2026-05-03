@@ -17,6 +17,9 @@
 
 #![deny(unsafe_code)]
 
+pub mod decide;
+pub use decide::{decide_frames, Decision, FrameDecision, FramesArg};
+
 use camino::{Utf8Path, Utf8PathBuf};
 use learn_core::{LearnError, Result, Segment, SegmentKind};
 use serde::Deserialize;
@@ -161,16 +164,23 @@ impl FrameExtractor {
 
 /// Estimate frame count for a video without extracting.
 ///
-/// Prints cost hint to stderr and returns estimated frame count.
-pub fn estimate_and_print_cost(video_path: &Utf8Path, cfg: &ExtractorConfig) -> usize {
+/// Returns estimated frame count (no side effects).
+pub fn estimate_frame_count(video_path: &Utf8Path, cfg: &ExtractorConfig) -> usize {
     let duration = probe_duration(video_path).unwrap_or(0.0);
     let extractor = FrameExtractor::new(cfg.clone());
     let fps = extractor.effective_fps(video_path);
-    let count = if duration > 0.0 {
+    if duration > 0.0 {
         ((duration * fps).ceil() as usize).min(cfg.max_frames)
     } else {
         cfg.max_frames
-    };
+    }
+}
+
+/// Estimate frame count for a video without extracting.
+///
+/// Prints cost hint to stderr and returns estimated frame count.
+pub fn estimate_and_print_cost(video_path: &Utf8Path, cfg: &ExtractorConfig) -> usize {
+    let count = estimate_frame_count(video_path, cfg);
     eprintln!("Estimated frames: {count} (~{count}×$0.005 in vision tokens)");
     count
 }

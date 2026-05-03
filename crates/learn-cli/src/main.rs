@@ -35,11 +35,17 @@ enum Cmd {
         since: Option<String>,
         #[arg(long)]
         limit: Option<usize>,
-        /// Disable Sonnet-vision frame captioning (enabled by default).
-        #[arg(long)]
+        /// Frame-extraction mode: auto (default), on, or off.
+        /// auto: pHash variance + optional VLM probe decide.
+        /// on:   always extract frames.
+        /// off:  skip frames entirely.
+        #[arg(long, default_value = "auto")]
+        frames: String,
+        /// Disable Sonnet-vision frame captioning (equivalent to --frames=off).
+        #[arg(long, conflicts_with = "frames")]
         no_frames: bool,
-        /// Explicitly enable Sonnet-vision frame captioning (default behaviour; symmetric with --no-frames).
-        #[arg(long, conflicts_with = "no_frames")]
+        /// Explicitly enable Sonnet-vision frame captioning (equivalent to --frames=on).
+        #[arg(long, conflicts_with = "frames")]
         with_frames: bool,
         /// Maximum number of keyframes to extract per video (default: 60).
         #[arg(long, default_value = "60")]
@@ -201,23 +207,29 @@ async fn main() {
             topic,
             since,
             limit,
+            frames,
             no_frames,
-            with_frames: _,
+            with_frames,
             max_frames,
             force,
         } => {
             if since.is_some() {
                 tracing::warn!("--since is not yet implemented and will be ignored");
             }
-            let frames_enabled = !no_frames;
-            commands::run_ingest_with_limit(
-                source,
-                topic,
-                kb_root,
-                force,
-                limit,
-                frames_enabled,
-                max_frames,
+            // Resolve FramesArg: legacy --no-frames / --with-frames take priority over --frames.
+            let frames_arg = if no_frames {
+                learn_frames::FramesArg::Off
+            } else if with_frames {
+                learn_frames::FramesArg::On
+            } else {
+                match frames.as_str() {
+                    "on" => learn_frames::FramesArg::On,
+                    "off" => learn_frames::FramesArg::Off,
+                    _ => learn_frames::FramesArg::Auto,
+                }
+            };
+            commands::run_ingest_with_frames(
+                source, topic, kb_root, force, limit, frames_arg, max_frames,
             )
             .await
         }
