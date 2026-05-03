@@ -92,9 +92,10 @@ enum Cmd {
         #[arg(long)]
         video: Option<String>,
     },
-    /// List videos in a topic.
+    /// List all knowledge bases (no args), or videos in one topic.
     List {
-        topic: String,
+        /// Topic name. Omit to see every KB you've built.
+        topic: Option<String>,
         #[arg(long, default_value = "date")]
         by: String,
     },
