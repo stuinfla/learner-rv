@@ -192,8 +192,9 @@ async fn run_ask(
     // 1. Open index.
     let index = learn_index::LearnIndex::open(&kb_root, topic.clone())?;
 
-    // 2. Build retriever.
-    let mut retriever = learn_retrieve::Retriever::new(index, embedder_path.as_ref())?;
+    // 2. Build retriever with per-topic SONA adapter.
+    let mut retriever =
+        learn_retrieve::Retriever::for_topic(index, &topic, embedder_path.as_ref())?;
 
     // 3. Build BM25 index.
     retriever.refresh_bm25()?;
@@ -232,8 +233,9 @@ async fn run_apply(
     // 1. Open index.
     let index = learn_index::LearnIndex::open(&kb_root, topic.clone())?;
 
-    // 2. Build retriever.
-    let mut retriever = learn_retrieve::Retriever::new(index, embedder_path.as_ref())?;
+    // 2. Build retriever with per-topic SONA adapter.
+    let mut retriever =
+        learn_retrieve::Retriever::for_topic(index, &topic, embedder_path.as_ref())?;
     retriever.refresh_bm25()?;
 
     // 3. Search using task text as query.

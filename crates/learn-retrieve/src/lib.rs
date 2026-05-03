@@ -26,7 +26,7 @@ mod mmr;
 #[cfg(test)]
 mod tests;
 
-use learn_core::{Chunk, Hit, LearnError, Result};
+use learn_core::{Chunk, Hit, LearnError, Result, Topic};
 use learn_embed::{EmbedConfig, Embedder, Reranker};
 use learn_index::LearnIndex;
 use tracing::{debug, warn};
@@ -46,7 +46,7 @@ const SOURCE_CAP: usize = 3;
 
 /// End-to-end hybrid retriever.
 ///
-/// Construct with [`Retriever::new`], then call [`Retriever::search`].
+/// Construct with [`Retriever::for_topic`], then call [`Retriever::search`].
 /// Call [`Retriever::refresh_bm25`] after ingesting new chunks to rebuild the
 /// sparse index from the updated sidecar.
 pub struct Retriever {
@@ -57,13 +57,46 @@ pub struct Retriever {
 }
 
 impl Retriever {
-    /// Create a `Retriever` from an open [`LearnIndex`] and an embedder config.
+    /// Create a `Retriever` with a per-topic SONA MicroLoRA adapter loaded.
     ///
-    /// `embedder_path` must point to a directory containing `model.onnx` and
-    /// `tokenizer.json` for the BGE-large model.
+    /// This is the **canonical constructor** for all query commands.  It calls
+    /// [`Embedder::for_topic`] so that the persisted adapter at
+    /// `~/.cache/learn-rs/adapters/<topic>/lora.json` is rehydrated into the
+    /// SONA engine, giving the embedder the MicroLoRA weights accumulated
+    /// across previous sessions.
     ///
     /// The BM25 index is not built here; call [`Retriever::refresh_bm25`] once
     /// after construction (or after ingesting chunks).
+    pub fn for_topic(
+        index: LearnIndex,
+        topic: &Topic,
+        embedder_path: &camino::Utf8Path,
+    ) -> Result<Self> {
+        let cfg = EmbedConfig {
+            model_dir: embedder_path.to_owned(),
+            ..Default::default()
+        };
+        let embedder = Embedder::for_topic(topic, &cfg)?;
+        Ok(Self {
+            index,
+            embedder,
+            reranker: None,
+            bm25: None,
+        })
+    }
+
+    /// Create a `Retriever` with a blank (anonymous) SONA adapter.
+    ///
+    /// # Deprecation note
+    ///
+    /// Prefer [`Retriever::for_topic`] for all query commands.  `new` uses
+    /// [`Embedder::load`] which starts with zeroed MicroLoRA weights, silently
+    /// bypassing any per-topic adapter persisted at
+    /// `~/.cache/learn-rs/adapters/<topic>/lora.json`.
+    #[deprecated(
+        since = "0.1.0",
+        note = "use Retriever::for_topic to load the per-topic SONA adapter"
+    )]
     pub fn new(index: LearnIndex, embedder_path: &camino::Utf8Path) -> Result<Self> {
         let cfg = EmbedConfig {
             model_dir: embedder_path.to_owned(),

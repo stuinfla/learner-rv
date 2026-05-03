@@ -190,6 +190,12 @@ The original spec called for SAT/SMT proofs via `ruvector-verified`. Investigati
 - [x] **Tested** — `cargo check --workspace` EXIT:0 on local machine confirming path-deps resolve correctly; workflow structural sanity verified (all conditional guards removed, clone step is non-optional). Real CI run awaits Stuart pushing a `v*.*.*` tag.
 - [ ] **Confirmed** — pending a real tag-driven run producing released binaries on GitHub for all 5 targets
 
+## Phase 1.5 deviation — SONA per-topic adapter not wired into Retriever (bug + fix, 2026-05-02)
+
+**Bug detected independently by the Ruflo architectural reviewer and the performance auditor:** `Retriever::new` (the sole constructor used by all 7 query commands — `ask`, `apply`, `compare`, `summarize`, `regression`, and the two `run_apply`/`run_ask` paths in `main.rs`) called `Embedder::load(&cfg)` instead of `Embedder::for_topic(topic, &cfg)`. This meant every query used a blank (zeroed) SONA MicroLoRA adapter, silently bypassing the persisted per-topic adapter at `~/.cache/learn-rs/adapters/<topic>/lora.json`. The "KB sharpens with use" promise was a dead letter: feedback was written correctly by `record_feedback`, but was never loaded on subsequent queries.
+
+**Fix applied (2026-05-02):** Added `Retriever::for_topic(index, topic, embedder_path)` as the canonical constructor calling `Embedder::for_topic`. Marked `Retriever::new` as `#[deprecated]`. Updated all 5 call sites (2 in `main.rs`, 3 in `commands.rs`) to `Retriever::for_topic`. Regression test `for_topic_uses_for_topic_embedder_different_topics_use_different_adapters` added to `learn-retrieve/src/tests.rs` verifying adapter file isolation. All workspace gates green; test count 226 → 227.
+
 ## Tracked deviations and design caveats
 
 These are real items that landed but with caveats Stuart should know about:

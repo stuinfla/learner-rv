@@ -345,7 +345,8 @@ pub async fn run_compare(
     let topic = Topic::new(&topic_str)?;
     let embedder_path = super::default_model_dir();
     let index = LearnIndex::open(kb_root.as_ref(), topic.clone())?;
-    let mut retriever = learn_retrieve::Retriever::new(index, embedder_path.as_ref())?;
+    let mut retriever =
+        learn_retrieve::Retriever::for_topic(index, &topic, embedder_path.as_ref())?;
     retriever.refresh_bm25()?;
     let hits_a = retriever.search(&a, 5).await?;
     let hits_b = retriever.search(&b, 5).await?;
@@ -407,7 +408,8 @@ pub async fn run_summarize(
         let graph = LearnGraph::open(kb_root.as_ref(), topic.clone())?;
         let ranked = graph.pagerank()?;
         let index = LearnIndex::open(kb_root.as_ref(), topic.clone())?;
-        let mut retriever = learn_retrieve::Retriever::new(index, embedder_path.as_ref())?;
+        let mut retriever =
+            learn_retrieve::Retriever::for_topic(index, &topic, embedder_path.as_ref())?;
         retriever.refresh_bm25()?;
         let query = ranked
             .first()
@@ -839,7 +841,8 @@ pub async fn run_regression(topic_str: String, kb_root: Utf8PathBuf) -> Result<(
 
     let embedder_path = super::default_model_dir();
     let index = LearnIndex::open(kb_root.as_ref(), topic.clone())?;
-    let mut retriever = learn_retrieve::Retriever::new(index, embedder_path.as_ref())?;
+    let mut retriever =
+        learn_retrieve::Retriever::for_topic(index, &topic, embedder_path.as_ref())?;
     retriever.refresh_bm25()?;
 
     let synth = learn_synth::select_synthesizer()?;
