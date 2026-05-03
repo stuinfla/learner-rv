@@ -134,15 +134,36 @@ fn push_or_merge(segments: &mut Vec<Segment>, start: f64, end: f64, text: String
     });
 }
 
-/// Second-pass dedup: remove any remaining consecutive identical segments
-/// (YouTube sometimes produces them across cue boundaries).
+/// Second-pass dedup: handle YouTube's rolling-caption overlap pattern.
+///
+/// yt-dlp auto-captions repeat the previous cue's text as the first line of
+/// each new cue, then append the new words.  After tag-stripping and joining
+/// this produces segments where `segments[i].text` *starts with*
+/// `segments[i-1].text`.  We strip that prefix so only the fresh words remain,
+/// then drop any segment whose text becomes empty after stripping.
 fn dedupe_rolling(segments: &mut Vec<Segment>) {
     let mut i = 1;
     while i < segments.len() {
-        if segments[i].text == segments[i - 1].text {
+        let prev_text = segments[i - 1].text.clone();
+        let cur_text = &segments[i].text;
+
+        if cur_text == &prev_text {
+            // Exact duplicate — extend previous and drop current.
             let new_end = segments[i].end_seconds;
             segments[i - 1].end_seconds = new_end;
             segments.remove(i);
+        } else if let Some(tail) = cur_text.strip_prefix(prev_text.as_str()) {
+            // Current starts with previous — keep only the new tail.
+            let tail = tail.trim().to_string();
+            if tail.is_empty() {
+                // Nothing new; extend previous and drop current.
+                let new_end = segments[i].end_seconds;
+                segments[i - 1].end_seconds = new_end;
+                segments.remove(i);
+            } else {
+                segments[i].text = tail;
+                i += 1;
+            }
         } else {
             i += 1;
         }
@@ -259,6 +280,100 @@ New text here
             "expected 1 segment after BOM strip, got {segs:?}"
         );
         assert_eq!(segs[0].text, "hi");
+    }
+
+    /// Real yt-dlp auto-caption pattern: each cue carries the previous cue's
+    /// full text as its first line, then adds new words.  After tag-stripping
+    /// the segments arrive as:
+    ///   seg[0] = "Hi everyone."
+    ///   seg[1] = "Hi everyone. Real pleasure to be here"   ← starts with seg[0]
+    ///   seg[2] = "Real pleasure to be here and I'm excited" ← starts with tail of seg[1]
+    ///
+    /// Expected output: three non-overlapping segments whose texts concatenate
+    /// cleanly into the full spoken sentence.
+    const YTDLP_OVERLAP_VTT: &str = r#"WEBVTT
+Kind: captions
+Language: en
+
+00:00:02.480 --> 00:00:04.230 align:start position:0%
+Hi everyone.
+
+00:00:04.230 --> 00:00:04.240 align:start position:0%
+Hi everyone. Real pleasure to be here
+
+00:00:04.240 --> 00:00:07.190 align:start position:0%
+Hi everyone. Real pleasure to be here
+and I'm very excited
+
+00:00:07.190 --> 00:00:07.200 align:start position:0%
+and I'm very excited
+
+00:00:07.200 --> 00:00:10.310 align:start position:0%
+and I'm very excited
+to showcase the demo
+
+"#;
+
+    #[test]
+    fn ytdlp_overlap_deduplicated() {
+        let segs = parse_vtt_str(YTDLP_OVERLAP_VTT);
+        // After dedup the texts must not repeat words from the previous segment.
+        for i in 1..segs.len() {
+            assert!(
+                !segs[i].text.starts_with(&segs[i - 1].text),
+                "seg[{i}] still starts with seg[{}]: {:?} vs {:?}",
+                i - 1,
+                segs[i - 1].text,
+                segs[i].text
+            );
+        }
+        // Joined text should contain each key phrase exactly once.
+        let joined = segs
+            .iter()
+            .map(|s| s.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ");
+        assert!(
+            joined.contains("Hi everyone."),
+            "missing 'Hi everyone.' in: {joined}"
+        );
+        assert!(
+            joined.contains("Real pleasure to be here"),
+            "missing carry-forward in: {joined}"
+        );
+        assert!(
+            joined.contains("to showcase the demo"),
+            "missing final phrase in: {joined}"
+        );
+        // Sanity: no empty segments.
+        for seg in &segs {
+            assert!(!seg.text.is_empty(), "empty segment after dedup: {seg:?}");
+        }
+    }
+
+    /// Overlap where the new segment is ONLY the prefix (nothing new added).
+    /// Should collapse into the previous segment (extend its end_seconds).
+    const PURE_REPEAT_VTT: &str = r#"WEBVTT
+
+00:00:00.000 --> 00:00:02.000
+Hello world
+
+00:00:02.000 --> 00:00:04.000
+Hello world
+
+00:00:04.000 --> 00:00:06.000
+Hello world and more
+
+"#;
+
+    #[test]
+    fn pure_repeat_collapses_then_extends() {
+        let segs = parse_vtt_str(PURE_REPEAT_VTT);
+        // "Hello world" repeated twice → collapsed to one; "and more" is new.
+        assert_eq!(segs.len(), 2, "expected 2 segments, got {segs:?}");
+        assert_eq!(segs[0].text, "Hello world");
+        // The second segment carries only the new words.
+        assert_eq!(segs[1].text, "and more");
     }
 
     #[test]
