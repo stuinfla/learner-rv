@@ -1,0 +1,28 @@
+[package]
+name = "learn-chat"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Session-persisted multi-turn chat REPL grounded in the KB."
+
+[dependencies]
+learn-core.workspace = true
+learn-embed.workspace = true
+learn-retrieve.workspace = true
+learn-synth.workspace = true
+learn-index.workspace = true
+
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+camino.workspace = true
+uuid.workspace = true
+dirs = "6"
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["full"] }
