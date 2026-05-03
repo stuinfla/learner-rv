@@ -325,3 +325,38 @@ jobs:
           path: dist/learn-${{ matrix.target }}.${{ matrix.archive_ext }}
           if-no-files-found: error
           retention-days: 30
+
+  # -------------------------------------------------------------------------
+  # Publish: collect every successful matrix artifact and publish them as
+  # a single GitHub Release. Without this job the artifacts only exist in
+  # Actions storage; users can't download from a stable URL like
+  # /releases/latest/download/<file>.tar.gz.
+  # -------------------------------------------------------------------------
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    # Only publish on tag pushes, not workflow_dispatch
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          # Pulls every uploaded artifact directory under dist/
+      - name: List artifacts
+        run: |
+          echo "Available artifacts:"
+          find dist -type f \( -name '*.tar.gz' -o -name '*.zip' \) -print
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/**/*.tar.gz
+            dist/**/*.zip
+          fail_on_unmatched_files: false
+          generate_release_notes: true
+          draft: false
+          prerelease: false
