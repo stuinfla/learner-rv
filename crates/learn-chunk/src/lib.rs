@@ -133,8 +133,10 @@ fn sentences_from_transcript(transcript: &Transcript) -> Vec<Sentence> {
 
 /// Build a [`Chunk`] from a slice of sentences.
 ///
-/// The chunk kind is `FrameDescription` if any contributing sentence is a
-/// frame description; otherwise it defaults to `Caption`.
+/// The chunk kind is derived from the source sentences:
+/// - All `Caption` → `Caption`
+/// - All `FrameDescription` → `FrameDescription`
+/// - Mixed → `Mixed`
 fn build_chunk(sentences: &[Sentence], video_id: &str, idx: usize) -> Chunk {
     debug_assert!(!sentences.is_empty());
     let text = sentences
@@ -145,13 +147,14 @@ fn build_chunk(sentences: &[Sentence], video_id: &str, idx: usize) -> Chunk {
     let token_count = approx_tokens(&text);
     let start_seconds = sentences.first().map(|s| s.start_seconds).unwrap_or(0.0);
     let end_seconds = sentences.last().map(|s| s.end_seconds).unwrap_or(0.0);
-    let kind = if sentences
+    let has_caption = sentences.iter().any(|s| s.kind == SegmentKind::Caption);
+    let has_frame = sentences
         .iter()
-        .any(|s| s.kind == SegmentKind::FrameDescription)
-    {
-        SegmentKind::FrameDescription
-    } else {
-        SegmentKind::Caption
+        .any(|s| s.kind == SegmentKind::FrameDescription);
+    let kind = match (has_caption, has_frame) {
+        (true, false) => SegmentKind::Caption,
+        (false, true) => SegmentKind::FrameDescription,
+        _ => SegmentKind::Mixed,
     };
     Chunk {
         chunk_id: format!("{}:{}", video_id, idx),
@@ -255,6 +258,16 @@ pub fn chunk_transcript(transcript: &Transcript, cfg: &ChunkConfig) -> Result<Ve
                 .last()
                 .map(|s| s.end_seconds)
                 .unwrap_or(prev.end_seconds);
+            // Recompute kind: if the tail introduces a new kind, escalate to Mixed.
+            let tail_has_caption = window.iter().any(|s| s.kind == SegmentKind::Caption);
+            let tail_has_frame = window
+                .iter()
+                .any(|s| s.kind == SegmentKind::FrameDescription);
+            prev.kind = match (prev.kind, tail_has_caption, tail_has_frame) {
+                (SegmentKind::Caption, true, false) => SegmentKind::Caption,
+                (SegmentKind::FrameDescription, false, true) => SegmentKind::FrameDescription,
+                _ => SegmentKind::Mixed,
+            };
             debug!(
                 chunk_idx = prev.chunk_id,
                 "merged runt tail into previous chunk"
@@ -519,6 +532,151 @@ mod tests {
         );
     }
 
+    // ── kind-tagging tests ────────────────────────────────────────────────────
+
+    fn seg_with_kind(start: f64, end: f64, text: &str, kind: learn_core::SegmentKind) -> Segment {
+        Segment {
+            start_seconds: start,
+            end_seconds: end,
+            text: text.to_string(),
+            confidence: None,
+            speaker: None,
+            kind,
+        }
+    }
+
+    /// Pure Caption segments must produce Caption chunks only.
+    #[test]
+    fn all_caption_segments_produce_caption_chunks() {
+        let t = transcript(
+            "vid_caption_only",
+            vec![
+                seg(0.0, 5.0, "Caption sentence one here now."),
+                seg(5.0, 10.0, "Caption sentence two here now."),
+            ],
+        );
+        let chunks = run(&t, &default_cfg());
+        assert!(!chunks.is_empty());
+        for c in &chunks {
+            assert_eq!(
+                c.kind,
+                learn_core::SegmentKind::Caption,
+                "expected Caption, got {:?} for chunk {}",
+                c.kind,
+                c.chunk_id
+            );
+        }
+    }
+
+    /// Pure FrameDescription segments must produce FrameDescription chunks only.
+    #[test]
+    fn all_frame_segments_produce_frame_chunks() {
+        let t = Transcript {
+            video_id: "vid_frame_only".to_string(),
+            language: None,
+            source: TranscriptSource::Captions,
+            segments: vec![
+                seg_with_kind(
+                    0.0,
+                    0.1,
+                    "A speaker gestures at a whiteboard.",
+                    learn_core::SegmentKind::FrameDescription,
+                ),
+                seg_with_kind(
+                    10.0,
+                    10.1,
+                    "Diagram shows a neural network architecture.",
+                    learn_core::SegmentKind::FrameDescription,
+                ),
+            ],
+        };
+        let chunks = run(&t, &default_cfg());
+        assert!(!chunks.is_empty());
+        for c in &chunks {
+            assert_eq!(
+                c.kind,
+                learn_core::SegmentKind::FrameDescription,
+                "expected FrameDescription, got {:?} for chunk {}",
+                c.kind,
+                c.chunk_id
+            );
+        }
+    }
+
+    /// Mixed segments (some Caption, some FrameDescription packed into same chunk)
+    /// must produce Mixed chunks; pure runs must remain correctly tagged.
+    ///
+    /// Setup: use a tiny target_tokens so that:
+    ///   - chunk 0 gets only the 2 caption sentences → Caption
+    ///   - chunk 1 gets only the 2 frame sentences → FrameDescription
+    ///   - chunk 2 gets one caption + one frame sentence → Mixed
+    #[test]
+    fn mixed_segments_produce_correctly_tagged_chunks() {
+        // Two caption segments, two frame segments, two more mixed.
+        // Use target_tokens=10 so each pair fits in one chunk.
+        let caption_text = "Hello world here."; // ~5 tokens
+        let frame_text = "Screen shows code."; // ~5 tokens
+
+        let t = Transcript {
+            video_id: "vid_mixed".to_string(),
+            language: None,
+            source: TranscriptSource::Captions,
+            segments: vec![
+                // Block 1: two caption sentences
+                seg_with_kind(0.0, 5.0, caption_text, learn_core::SegmentKind::Caption),
+                seg_with_kind(5.0, 10.0, caption_text, learn_core::SegmentKind::Caption),
+                // Block 2: two frame sentences
+                seg_with_kind(
+                    10.0,
+                    10.1,
+                    frame_text,
+                    learn_core::SegmentKind::FrameDescription,
+                ),
+                seg_with_kind(
+                    20.0,
+                    20.1,
+                    frame_text,
+                    learn_core::SegmentKind::FrameDescription,
+                ),
+                // Block 3: one caption + one frame (mixed)
+                seg_with_kind(30.0, 35.0, caption_text, learn_core::SegmentKind::Caption),
+                seg_with_kind(
+                    35.0,
+                    35.1,
+                    frame_text,
+                    learn_core::SegmentKind::FrameDescription,
+                ),
+            ],
+        };
+        let cfg = ChunkConfig {
+            target_tokens: 10,
+            overlap_tokens: 2,
+            min_tokens: 1,
+        };
+        let chunks = run(&t, &cfg);
+
+        use learn_core::SegmentKind;
+        use std::collections::HashSet;
+        let kinds: HashSet<_> = chunks.iter().map(|c| c.kind).collect();
+        assert!(
+            kinds.len() > 1,
+            "expected multiple distinct kinds across chunks, got only {kinds:?}; chunks: {chunks:#?}"
+        );
+        // At least one of each kind must appear.
+        assert!(
+            kinds.contains(&SegmentKind::Caption),
+            "expected at least one Caption chunk; got {kinds:?}"
+        );
+        assert!(
+            kinds.contains(&SegmentKind::FrameDescription),
+            "expected at least one FrameDescription chunk; got {kinds:?}"
+        );
+        assert!(
+            kinds.contains(&SegmentKind::Mixed),
+            "expected at least one Mixed chunk; got {kinds:?}"
+        );
+    }
+
     // ── proptest properties ───────────────────────────────────────────────────
 
     // Arbitrary transcript generator: 0–20 segments, text drawn from
@@ -605,27 +763,33 @@ mod tests {
         }
 
         /// Property 3: char count of all chunk texts (joined) >= char count of all
-        /// source segment texts (joined), accounting for overlap headroom.
+        /// source sentences (joined), accounting for overlap headroom.
         ///
-        /// Because overlap copies sentences into multiple chunks, the joined chunk
-        /// text will be LARGER than the source text. We verify the lower bound:
-        /// joined source text length <= joined chunk text length.
+        /// The comparison is made against the **sentence-split** view of the source
+        /// (what `sentences_from_transcript` produces), not the raw segment bytes.
+        /// The chunker trims each segment and splits on punctuation, so a segment
+        /// like `"Hi! "` (4 chars) yields one sentence `"Hi!"` (3 chars); comparing
+        /// against raw segment chars would create a spurious off-by-one.
+        /// Because overlap copies sentences into multiple chunks the joined chunk
+        /// text is always >= the joined sentence text.
         #[test]
         fn prop_chunks_cover_source_text(t in arb_transcript()) {
             let cfg = ChunkConfig { target_tokens: 50, overlap_tokens: 10, min_tokens: 5 };
             let chunks = chunk_transcript(&t, &cfg).unwrap();
 
-            let source_chars: usize = t.segments.iter()
-                .map(|s| s.text.trim().chars().count())
+            // Count chars from the sentence-split view (same path the chunker uses).
+            let source_chars: usize = sentences_from_transcript(&t)
+                .iter()
+                .map(|s| s.text.chars().count())
                 .sum();
             let chunk_chars: usize = chunks.iter()
                 .map(|c| c.text.chars().count())
                 .sum();
 
-            // Chunk text >= source text because overlap duplicates some sentences.
+            // Chunk text >= sentence text because overlap duplicates some sentences.
             prop_assert!(
                 chunk_chars >= source_chars,
-                "chunks cover fewer chars ({}) than source ({})",
+                "chunks cover fewer chars ({}) than source sentences ({})",
                 chunk_chars,
                 source_chars
             );

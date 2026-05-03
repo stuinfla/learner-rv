@@ -135,12 +135,12 @@ pub struct Acquired {
 
 /// Discriminates the origin of a [`Segment`] or [`Chunk`].
 ///
-/// Serializes as PascalCase (`"Caption"`, `"FrameDescription"`).
+/// Serializes as PascalCase (`"Caption"`, `"FrameDescription"`, `"Mixed"`).
 /// Old data that predates this field deserializes to [`SegmentKind::Caption`]
 /// via the `#[serde(default)]` on the containing struct.
 /// The snake_case alias `"frame_description"` is also accepted for backward
 /// compat with data written by earlier versions of this library.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub enum SegmentKind {
     /// Text derived from auto-captions or Whisper ASR.
     #[default]
@@ -148,6 +148,8 @@ pub enum SegmentKind {
     /// Text derived from Sonnet-vision frame description.
     #[serde(alias = "frame_description")]
     FrameDescription,
+    /// Chunk spans both Caption and FrameDescription source segments.
+    Mixed,
 }
 
 /// One transcript line: timestamped text from captions, whisper, or frame vision.
