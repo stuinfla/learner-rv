@@ -105,47 +105,55 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 1. M-series Mac -- primary.
+          # 1. M-series Mac -- primary. Includes learn-asr (whisper-rs/metal).
           - target: aarch64-apple-darwin
             runner: macos-14
             os: macos
             archive_ext: tar.gz
             best_effort: false
             use_cross: false
+            cargo_exclude: ""
 
-          # 2. Intel Mac -- secondary.
+          # 2. Intel Mac -- secondary. Includes learn-asr (whisper-rs/metal).
           - target: x86_64-apple-darwin
             runner: macos-13
             os: macos
             archive_ext: tar.gz
             best_effort: false
             use_cross: false
+            cargo_exclude: ""
 
           # 3. Linux x86_64 -- best-effort (Phase 5).
+          # learn-asr is excluded: whisper-rs vendors whisper.cpp with the `metal`
+          # feature, which depends on Apple's Foundation framework (not available
+          # on Linux). Per crate docstring, ASR is Apple-only by design.
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
             os: linux
             archive_ext: tar.gz
             best_effort: true
             use_cross: false
+            cargo_exclude: "--exclude learn-asr"
 
           # 4. Linux ARM64 -- best-effort (Phase 5), cross-compile via `cross`.
+          # Same learn-asr exclusion as Linux x86_64.
           - target: aarch64-unknown-linux-gnu
             runner: ubuntu-latest
             os: linux
             archive_ext: tar.gz
             best_effort: true
             use_cross: true
+            cargo_exclude: "--exclude learn-asr"
 
-          # 5. Windows -- best-effort (Phase 5). whisper-rs `metal` feature is
-          # Apple-only; this entry will fail until learn-asr feature gating is
-          # added in a future phase. NOT in M-series-first scope.
+          # 5. Windows -- best-effort (Phase 5). Same learn-asr exclusion; the
+          # whisper-rs `metal` feature is Apple-only.
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
             os: windows
             archive_ext: zip
             best_effort: true
             use_cross: false
+            cargo_exclude: "--exclude learn-asr"
 
     continue-on-error: ${{ matrix.best_effort }}
 
@@ -220,14 +228,16 @@ jobs:
         shell: bash
         env:
           BUILD_TARGET: ${{ matrix.target }}
+          CARGO_EXCLUDE: ${{ matrix.cargo_exclude }}
         run: |
-          cargo build --release --workspace --target "$BUILD_TARGET"
+          cargo build --release --workspace $CARGO_EXCLUDE --target "$BUILD_TARGET"
 
       - name: cross build --release (cross-compile)
         if: matrix.use_cross == true
         env:
           BUILD_TARGET: ${{ matrix.target }}
-        run: cross build --release --workspace --target "$BUILD_TARGET"
+          CARGO_EXCLUDE: ${{ matrix.cargo_exclude }}
+        run: cross build --release --workspace $CARGO_EXCLUDE --target "$BUILD_TARGET"
 
       # ----- Test ------------------------------------------------------------
       # Skip cross-compiled tests (can't run aarch64 binaries on x86 host).
@@ -238,9 +248,10 @@ jobs:
         shell: bash
         env:
           BUILD_TARGET: ${{ matrix.target }}
+          CARGO_EXCLUDE: ${{ matrix.cargo_exclude }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          cargo test --workspace --no-fail-fast --target "$BUILD_TARGET"
+          cargo test --workspace $CARGO_EXCLUDE --no-fail-fast --target "$BUILD_TARGET"
 
       # ----- Package ---------------------------------------------------------
 
