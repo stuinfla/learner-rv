@@ -114,14 +114,12 @@ jobs:
             use_cross: false
             cargo_exclude: ""
 
-          # 2. Intel Mac -- secondary. Includes learn-asr (whisper-rs/metal).
-          - target: x86_64-apple-darwin
-            runner: macos-13
-            os: macos
-            archive_ext: tar.gz
-            best_effort: false
-            use_cross: false
-            cargo_exclude: ""
+          # NOTE: x86_64-apple-darwin (Intel Mac) is intentionally OMITTED.
+          # The macos-13 runner is being deprecated and queued indefinitely
+          # on v0.1.1 (observed 12+ hour hang, never picked up by a runner).
+          # `continue-on-error` doesn't help because the timeout only starts
+          # after a runner picks up the job. Re-add when GitHub provides a
+          # stable Intel macOS image. Intel Mac users can build from source.
 
           # 3. Linux x86_64 -- best-effort (Phase 5).
           # learn-asr is excluded: whisper-rs vendors whisper.cpp with the `metal`
