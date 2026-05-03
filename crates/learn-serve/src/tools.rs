@@ -65,12 +65,10 @@ pub fn handle_kb_query(cfg: &ServerConfig, args: &Value) -> anyhow::Result<Strin
         .refresh_bm25()
         .map_err(|e| anyhow::anyhow!("bm25: {e}"))?;
 
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()?;
-    let hits = rt
-        .block_on(retriever.search(&question, k))
-        .map_err(|e| anyhow::anyhow!("search: {e}"))?;
+    let hits = tokio::task::block_in_place(|| {
+        tokio::runtime::Handle::current().block_on(retriever.search(&question, k))
+    })
+    .map_err(|e| anyhow::anyhow!("search: {e}"))?;
 
     let entries: Vec<HitEntry> = hits
         .iter()
@@ -132,12 +130,10 @@ pub fn handle_kb_synthesize(cfg: &ServerConfig, args: &Value) -> anyhow::Result<
     let synth =
         learn_synth::select_synthesizer().map_err(|e| anyhow::anyhow!("synthesizer: {e}"))?;
 
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()?;
-    let answer = rt
-        .block_on(synth.ask(&cfg.topic, &question, &hits))
-        .map_err(|e| anyhow::anyhow!("synthesis: {e}"))?;
+    let answer = tokio::task::block_in_place(|| {
+        tokio::runtime::Handle::current().block_on(synth.ask(&cfg.topic, &question, &hits))
+    })
+    .map_err(|e| anyhow::anyhow!("synthesis: {e}"))?;
 
     let citations: Vec<Value> = answer
         .citations
@@ -228,8 +224,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn kb_query_returns_hit_shaped_response_when_topic_empty() {
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn kb_query_returns_hit_shaped_response_when_topic_empty() {
         let dir = tempdir().unwrap();
         let kb_root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
         let cfg = make_cfg(kb_root, "test-topic");
@@ -269,8 +265,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn kb_synthesize_errors_gracefully_without_api_key() {
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn kb_synthesize_errors_gracefully_without_api_key() {
         let dir = tempdir().unwrap();
         let kb_root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
         let cfg = make_cfg(kb_root, "test-topic");

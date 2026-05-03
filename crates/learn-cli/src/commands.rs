@@ -62,6 +62,36 @@ pub async fn run_ingest_with_limit(
     frames_enabled: bool,
     max_frames: usize,
 ) -> Result<()> {
+    let frames_arg = if frames_enabled {
+        learn_frames::FramesArg::On
+    } else {
+        learn_frames::FramesArg::Off
+    };
+    run_ingest_with_frames(
+        source,
+        topic_override,
+        kb_root,
+        force,
+        limit,
+        frames_arg,
+        max_frames,
+    )
+    .await
+}
+
+/// Ingest with full `FramesArg` control (auto-decision, on, or off).
+///
+/// This is the primary entry-point called by the CLI binary.
+/// `run_ingest_with_limit` is kept for backward-compatible test use.
+pub async fn run_ingest_with_frames(
+    source: String,
+    topic_override: Option<String>,
+    kb_root: Utf8PathBuf,
+    force: bool,
+    limit: Option<usize>,
+    frames_arg: learn_frames::FramesArg,
+    max_frames: usize,
+) -> Result<()> {
     use learn_acquire::{classify_source, resolve_to_videos, SourceKind};
 
     let kind = classify_source(&source);
@@ -83,7 +113,7 @@ pub async fn run_ingest_with_limit(
                 topic_override.clone(),
                 kb_root.clone(),
                 force,
-                frames_enabled,
+                frames_arg,
                 max_frames,
             )
             .await
@@ -99,7 +129,7 @@ pub async fn run_ingest_with_limit(
         topic_override,
         kb_root,
         force,
-        frames_enabled,
+        frames_arg,
         max_frames,
     )
     .await
@@ -111,7 +141,7 @@ async fn ingest_single_video(
     topic_override: Option<String>,
     kb_root: Utf8PathBuf,
     force: bool,
-    frames_enabled: bool,
+    frames_arg: learn_frames::FramesArg,
     max_frames: usize,
 ) -> Result<()> {
     // 1. Resolve topic.
@@ -134,8 +164,13 @@ async fn ingest_single_video(
         learn_acquire::check_slug_collision(&raw_dir, topic.as_str(), &known_ids)?;
     }
 
+    // 3b. Decide whether to download the video file (needed for frame extraction).
+    //     We need the video file when frames_arg is On, or Auto (may need it after evaluation).
+    //     Off: skip download.
+    let download_video = frames_arg != learn_frames::FramesArg::Off;
+
     tracing::info!(%topic, %source, "ingest: acquiring");
-    let acquired = learn_acquire::acquire_url(&source, &kb_root, &raw_dir, frames_enabled).await?;
+    let acquired = learn_acquire::acquire_url(&source, &kb_root, &raw_dir, download_video).await?;
     let video_id = acquired.video.video_id.clone();
 
     // 4. Check existing manifest state and apply resume logic.
@@ -233,21 +268,45 @@ async fn ingest_single_video(
     };
 
     // 7b. Optionally extract keyframes and caption them with Sonnet vision.
-    let frame_segments = if frames_enabled {
+    //     Run the frame-decision evaluator first (pHash variance + optional VLM probe).
+    let frame_segments = {
         let video_path = find_video_file(&acquired.raw_dir);
         match video_path {
-            Some(ref p) => run_frame_captioning(p, &acquired.raw_dir, max_frames).await,
+            Some(ref vp) => {
+                // Run the auto-decision pipeline.
+                let frame_decision = learn_frames::decide_frames(vp, frames_arg).await
+                    .unwrap_or_else(|e| {
+                        tracing::warn!(error = %e, "frame decision failed — defaulting to FullExtraction");
+                        learn_frames::FrameDecision {
+                            mode: learn_frames::Decision::FullExtraction {
+                                reason: format!("decision error ({e}), defaulting on"),
+                            },
+                            reason: format!("decision error ({e}), defaulting on"),
+                            variance: 1.0,
+                            probe_invoked: false,
+                        }
+                    });
+
+                // Print user-facing decision to stderr.
+                print_frame_decision(&frame_decision, vp, max_frames);
+
+                match &frame_decision.mode {
+                    learn_frames::Decision::Skip { .. } => vec![],
+                    learn_frames::Decision::FullExtraction { .. } => {
+                        run_frame_captioning(vp, &acquired.raw_dir, max_frames).await
+                    }
+                }
+            }
+            None if frames_arg == learn_frames::FramesArg::Off => vec![],
             None => {
                 tracing::warn!(
                     raw_dir = %acquired.raw_dir,
-                    "frames enabled but no video file found in raw_dir — \
+                    "frames requested but no video file found in raw_dir — \
                      yt-dlp may have failed to download; continuing captions-only"
                 );
                 vec![]
             }
         }
-    } else {
-        vec![]
     };
 
     let segments = learn_frames::merge_segments(caption_segments, frame_segments);
@@ -1102,6 +1161,32 @@ pub async fn run_study(
 }
 
 // ── Frame captioning helper ──────────────────────────────────────────────────
+
+/// Print the frame-decision evaluator result to stderr in the standard format.
+fn print_frame_decision(
+    decision: &learn_frames::FrameDecision,
+    video_path: &camino::Utf8Path,
+    max_frames: usize,
+) {
+    match &decision.mode {
+        learn_frames::Decision::Skip { .. } => {
+            eprintln!("> evaluator: {} ", decision.reason);
+            eprintln!("  → captions-only path, $0 vision cost");
+        }
+        learn_frames::Decision::FullExtraction { .. } => {
+            let extractor_cfg = learn_frames::ExtractorConfig {
+                max_frames,
+                ..Default::default()
+            };
+            let frame_count = learn_frames::estimate_frame_count(video_path, &extractor_cfg);
+            let cost_estimate = (frame_count as f64) * 0.005;
+            eprintln!("> evaluator: {}", decision.reason);
+            eprintln!(
+                "  → {frame_count} frames will be captioned (~${cost_estimate:.2} estimated)"
+            );
+        }
+    }
+}
 
 /// Locate the downloaded video file in `raw_dir`.
 ///
