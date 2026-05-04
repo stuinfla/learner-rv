@@ -2,6 +2,8 @@
 //!
 //! Phase 1: shells out to `yt-dlp --skip-download` to pull `.info.json` and
 //! WebVTT captions, then builds a `VideoRef` + `Acquired` from the results.
+//!
+//! Non-video sources (PDF, podcast RSS, web page) are also handled here.
 
 #![deny(unsafe_code)]
 
@@ -10,13 +12,14 @@ pub mod vtt;
 use camino::{Utf8Path, Utf8PathBuf};
 use learn_core::{Acquired, LearnError, Result, VideoRef};
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use std::fs;
 use tokio::process::Command;
 use tracing::{info, warn};
 
 // ── source classification ─────────────────────────────────────────────────────
 
-/// Coarse kind of a source string as understood by yt-dlp.
+/// Coarse kind of a source string as understood by yt-dlp or native handlers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SourceKind {
     /// A single watchable video URL (youtube.com/watch, youtu.be, etc.).
@@ -31,6 +34,12 @@ pub enum SourceKind {
     LocalDirectory,
     /// A local file path.
     LocalFile,
+    /// A URL whose path ends with `.pdf`, or a local file with `.pdf` extension.
+    Pdf,
+    /// A podcast RSS feed URL (known feed hosts or `.rss`/`.xml` path).
+    PodcastRss,
+    /// Any http/https URL not matched by earlier rules.
+    WebPage,
 }
 
 /// Classify a source string into a [`SourceKind`] without hitting the network.
@@ -77,9 +86,69 @@ pub fn classify_source(source: &str) -> SourceKind {
         {
             return SourceKind::Playlist;
         }
+
+        // Known video-hosting domains are always routed to yt-dlp as SingleVideo.
+        // This check must come before the PDF/RSS/WebPage rules so YouTube URLs
+        // (e.g. /watch?v=…, /shorts/…, /live/…) are never misclassified.
+        let is_video_host = host.contains("youtube.com")
+            || host == "youtu.be"
+            || host.contains("vimeo.com")
+            || host.contains("dailymotion.com")
+            || host.contains("twitch.tv");
+        if is_video_host {
+            return SourceKind::SingleVideo;
+        }
+
+        // Only apply PDF/RSS/WebPage classification to http(s) URLs.
+        if u.scheme() == "http" || u.scheme() == "https" {
+            let path_lower = path.to_lowercase();
+
+            // Direct video/audio file links are routed to yt-dlp as SingleVideo.
+            let is_media_file = path_lower.ends_with(".mp4")
+                || path_lower.ends_with(".mkv")
+                || path_lower.ends_with(".webm")
+                || path_lower.ends_with(".avi")
+                || path_lower.ends_with(".mov")
+                || path_lower.ends_with(".mp3")
+                || path_lower.ends_with(".m4a")
+                || path_lower.ends_with(".ogg")
+                || path_lower.ends_with(".flac");
+            if is_media_file {
+                return SourceKind::SingleVideo;
+            }
+
+            // PDF: URL path ends with .pdf (case-insensitive).
+            if path_lower.ends_with(".pdf") {
+                return SourceKind::Pdf;
+            }
+
+            // Podcast RSS: known feed hosts or path ends with .rss / .xml.
+            let is_feed_host = host.starts_with("feeds.")
+                || host == "anchor.fm"
+                || host.ends_with(".anchor.fm")
+                || host == "buzzsprout.com"
+                || host.ends_with(".buzzsprout.com")
+                || host == "libsyn.com"
+                || host.ends_with(".libsyn.com")
+                || host == "podbean.com"
+                || host.ends_with(".podbean.com")
+                || host == "simplecast.com"
+                || host.ends_with(".simplecast.com")
+                || host == "transistor.fm"
+                || host.ends_with(".transistor.fm")
+                || host == "spreaker.com"
+                || host.ends_with(".spreaker.com");
+            let is_feed_path = path_lower.ends_with(".rss") || path_lower.ends_with(".xml");
+            if is_feed_host || is_feed_path {
+                return SourceKind::PodcastRss;
+            }
+
+            // Any other http(s) URL falls through to WebPage.
+            return SourceKind::WebPage;
+        }
     }
 
-    // Anything else (http single-video URL, unknown URL scheme).
+    // Anything else (unknown URL scheme — treat as single-video for yt-dlp).
     SourceKind::SingleVideo
 }
 
@@ -108,9 +177,12 @@ pub async fn resolve_to_videos(source: &str, limit: Option<usize>) -> Result<Vec
     validate_source(source)?;
 
     match classify_source(source) {
-        SourceKind::SingleVideo | SourceKind::LocalFile | SourceKind::LocalDirectory => {
-            Ok(vec![source.to_owned()])
-        }
+        SourceKind::SingleVideo
+        | SourceKind::LocalFile
+        | SourceKind::LocalDirectory
+        | SourceKind::Pdf
+        | SourceKind::PodcastRss
+        | SourceKind::WebPage => Ok(vec![source.to_owned()]),
         SourceKind::Playlist | SourceKind::Channel | SourceKind::Search => {
             resolve_flat_playlist(source, limit).await
         }
@@ -500,6 +572,351 @@ fn find_vtt(dir: &Utf8Path) -> Option<Utf8PathBuf> {
     best
 }
 
+// ── non-video acquisition ─────────────────────────────────────────────────────
+
+/// Compute a 12-character hex ID from the SHA-256 of an arbitrary string.
+fn short_id(input: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(input.as_bytes());
+    let digest = hasher.finalize();
+    hex::encode(&digest[..6]) // 6 bytes → 12 hex chars
+}
+
+/// Write a pseudo-VTT file where each paragraph is assigned a 30-second slot.
+///
+/// The timestamps are synthetic — the content is what matters for chunking/embedding.
+fn write_pseudo_vtt(paragraphs: &[String], path: &Utf8Path) -> Result<()> {
+    let mut lines: Vec<String> = vec!["WEBVTT".into(), String::new()];
+    for (i, para) in paragraphs.iter().enumerate() {
+        let start = i as u64 * 30;
+        let end = start + 30;
+        lines.push(format!(
+            "00:{:02}:{:02}.000 --> 00:{:02}:{:02}.000",
+            start / 60,
+            start % 60,
+            end / 60,
+            end % 60
+        ));
+        lines.push(para.clone());
+        lines.push(String::new());
+    }
+    fs::write(path, lines.join("\n"))?;
+    Ok(())
+}
+
+/// Split text into non-empty paragraphs of at least `min_chars` characters.
+fn split_paragraphs(text: &str, min_chars: usize) -> Vec<String> {
+    text.split("\n\n")
+        .map(|p| p.trim().to_owned())
+        .filter(|p| p.len() >= min_chars)
+        .collect()
+}
+
+/// Acquire a PDF source: extract text via `pdftotext` subprocess and write a
+/// pseudo-VTT file.
+pub async fn acquire_pdf(url_or_path: &str, raw_dir: &Utf8Path) -> Result<Acquired> {
+    fs::create_dir_all(raw_dir)?;
+
+    let id = short_id(url_or_path);
+
+    // Fetch to a local file if the source is a URL.
+    let local_path: Utf8PathBuf;
+    let needs_download = url_or_path.starts_with("http://") || url_or_path.starts_with("https://");
+
+    if needs_download {
+        let dest = raw_dir.join(format!("{id}.pdf"));
+        download_binary(url_or_path, &dest).await?;
+        local_path = dest;
+    } else {
+        local_path = Utf8PathBuf::from(url_or_path);
+    }
+
+    let text = extract_pdf_text(&local_path)?;
+    let paragraphs = split_paragraphs(&text, 50);
+
+    let vtt_path = raw_dir.join(format!("{id}.vtt"));
+    write_pseudo_vtt(&paragraphs, &vtt_path)?;
+
+    let source_url = if needs_download {
+        url::Url::parse(url_or_path)
+            .map_err(|e| LearnError::Acquire(format!("invalid PDF URL: {e}")))?
+    } else {
+        url::Url::from_file_path(url_or_path).map_err(|_| {
+            LearnError::Acquire(format!("cannot build file URL for {url_or_path:?}"))
+        })?
+    };
+
+    let title = source_url
+        .path_segments()
+        .and_then(|mut s| s.next_back())
+        .map(str::to_owned);
+
+    let video = VideoRef {
+        video_id: id,
+        url: source_url,
+        title,
+        channel: None,
+        channel_id: None,
+        duration_seconds: None,
+        published_at: None,
+    };
+
+    info!(video_id = %video.video_id, vtt = %vtt_path, "acquired PDF");
+
+    Ok(Acquired {
+        video,
+        captions_vtt: Some(vtt_path),
+        audio_mp3: None,
+        raw_dir: raw_dir.to_owned(),
+    })
+}
+
+/// Extract text from a PDF file. Tries `pdftotext` subprocess first; logs a
+/// warning and returns an error if not found (no pure-Rust fallback to keep
+/// the dependency surface small — add `pdf-extract` if needed later).
+fn extract_pdf_text(path: &Utf8Path) -> Result<String> {
+    let output = std::process::Command::new("pdftotext")
+        .args(["-layout", path.as_str(), "-"])
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => String::from_utf8(o.stdout)
+            .map_err(|e| LearnError::Acquire(format!("pdftotext output is not valid UTF-8: {e}"))),
+        Ok(o) => {
+            let stderr = String::from_utf8_lossy(&o.stderr);
+            Err(LearnError::Acquire(format!(
+                "pdftotext exited non-zero for {path}: {stderr}"
+            )))
+        }
+        Err(e) => {
+            warn!("pdftotext not found or failed to spawn ({e}); PDF acquisition unavailable");
+            Err(LearnError::Acquire(format!(
+                "pdftotext not available — install poppler-utils to ingest PDFs: {e}"
+            )))
+        }
+    }
+}
+
+/// Download a binary URL to a local file using `reqwest`.
+async fn download_binary(url: &str, dest: &Utf8Path) -> Result<()> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .map_err(|e| LearnError::Acquire(format!("could not build HTTP client: {e}")))?;
+
+    let bytes = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| LearnError::Acquire(format!("could not download {url}: {e}")))?
+        .bytes()
+        .await
+        .map_err(|e| {
+            LearnError::Acquire(format!("could not read response body from {url}: {e}"))
+        })?;
+
+    fs::write(dest, &bytes)?;
+    Ok(())
+}
+
+/// Acquire a podcast RSS feed: fetch the XML, find the first audio enclosure,
+/// download the MP3 via yt-dlp, and return an `Acquired` with `audio_mp3` set.
+pub async fn acquire_podcast(rss_url: &str, raw_dir: &Utf8Path) -> Result<Acquired> {
+    fs::create_dir_all(raw_dir)?;
+
+    let id = short_id(rss_url);
+
+    // Fetch the RSS XML.
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .build()
+        .map_err(|e| LearnError::Acquire(format!("could not build HTTP client: {e}")))?;
+
+    let xml_text = client
+        .get(rss_url)
+        .send()
+        .await
+        .map_err(|e| LearnError::Acquire(format!("could not fetch RSS feed {rss_url}: {e}")))?
+        .text()
+        .await
+        .map_err(|e| LearnError::Acquire(format!("could not read RSS body: {e}")))?;
+
+    // Parse with roxmltree.
+    let doc = roxmltree::Document::parse(&xml_text)
+        .map_err(|e| LearnError::Acquire(format!("could not parse RSS XML: {e}")))?;
+
+    // Extract channel title (first <title> child of <channel>).
+    let channel_title = doc
+        .root_element()
+        .children()
+        .find(|n| n.has_tag_name("channel"))
+        .and_then(|ch| {
+            ch.children()
+                .find(|n| n.has_tag_name("title"))
+                .and_then(|t| t.text())
+                .map(str::to_owned)
+        });
+
+    // Find first <enclosure> with an audio type attribute.
+    let audio_url = doc
+        .descendants()
+        .find(|n| {
+            n.has_tag_name("enclosure")
+                && n.attribute("type")
+                    .map(|t| t.contains("audio"))
+                    .unwrap_or(false)
+        })
+        .and_then(|enc| enc.attribute("url"))
+        .map(str::to_owned)
+        .ok_or_else(|| {
+            LearnError::Acquire(format!("no audio enclosure found in RSS feed: {rss_url}"))
+        })?;
+
+    info!(rss_url, audio_url = %audio_url, "found podcast audio enclosure");
+
+    // Download via yt-dlp.
+    let mp3_path = raw_dir.join(format!("{id}.mp3"));
+    let output = Command::new("yt-dlp")
+        .args([
+            "-x",
+            "--audio-format",
+            "mp3",
+            "-o",
+            mp3_path.as_str(),
+            audio_url.as_str(),
+        ])
+        .output()
+        .await
+        .map_err(|e| LearnError::Acquire(format!("yt-dlp not found or failed to spawn: {e}")))?;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !stderr.is_empty() {
+        warn!(ytdlp.stderr = %stderr.trim());
+    }
+    if !output.status.success() {
+        let code = output.status.code().unwrap_or(-1);
+        warn!(exit_code = code, "yt-dlp exited non-zero for podcast audio");
+    }
+
+    let rss_parsed = url::Url::parse(rss_url)
+        .map_err(|e| LearnError::Acquire(format!("invalid RSS URL: {e}")))?;
+
+    let video = VideoRef {
+        video_id: id,
+        url: rss_parsed,
+        title: channel_title,
+        channel: None,
+        channel_id: None,
+        duration_seconds: None,
+        published_at: None,
+    };
+
+    info!(video_id = %video.video_id, ?mp3_path, "acquired podcast");
+
+    Ok(Acquired {
+        video,
+        captions_vtt: None,
+        audio_mp3: Some(mp3_path),
+        raw_dir: raw_dir.to_owned(),
+    })
+}
+
+/// Acquire a web page: fetch HTML, extract text from article/main/p tags,
+/// write a pseudo-VTT file, and return an `Acquired` with `captions_vtt` set.
+pub async fn acquire_webpage(url: &str, raw_dir: &Utf8Path) -> Result<Acquired> {
+    fs::create_dir_all(raw_dir)?;
+
+    let id = short_id(url);
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .build()
+        .map_err(|e| LearnError::Acquire(format!("could not build HTTP client: {e}")))?;
+
+    let html = client
+        .get(url)
+        .header("User-Agent", "learn-acquire/0.1")
+        .send()
+        .await
+        .map_err(|e| LearnError::Acquire(format!("could not fetch {url}: {e}")))?
+        .text()
+        .await
+        .map_err(|e| {
+            LearnError::Acquire(format!("could not read response body from {url}: {e}"))
+        })?;
+
+    let text = extract_webpage_text(&html);
+    let paragraphs = split_paragraphs(&text, 50);
+
+    let vtt_path = raw_dir.join(format!("{id}.vtt"));
+    write_pseudo_vtt(&paragraphs, &vtt_path)?;
+
+    let parsed =
+        url::Url::parse(url).map_err(|e| LearnError::Acquire(format!("invalid URL: {e}")))?;
+
+    let title = parsed
+        .path_segments()
+        .and_then(|mut s| s.next_back())
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .or_else(|| parsed.host_str().map(str::to_owned));
+
+    let video = VideoRef {
+        video_id: id,
+        url: parsed,
+        title,
+        channel: None,
+        channel_id: None,
+        duration_seconds: None,
+        published_at: None,
+    };
+
+    info!(video_id = %video.video_id, vtt = %vtt_path, "acquired web page");
+
+    Ok(Acquired {
+        video,
+        captions_vtt: Some(vtt_path),
+        audio_mp3: None,
+        raw_dir: raw_dir.to_owned(),
+    })
+}
+
+/// Extract visible text from HTML using the `scraper` crate.
+///
+/// Targets `<article>`, `<main>`, and `<p>` elements; skips `<script>` and
+/// `<style>` content. Falls back to all `<p>` text if no `<article>`/`<main>`
+/// content is found.
+fn extract_webpage_text(html: &str) -> String {
+    use scraper::{Html, Selector};
+
+    let document = Html::parse_document(html);
+
+    // Try semantic containers first.
+    let container_sel = Selector::parse("article, main").expect("valid selector");
+    let mut texts: Vec<String> = document
+        .select(&container_sel)
+        .flat_map(|el| el.text())
+        .map(|t| t.trim().to_owned())
+        .filter(|t| !t.is_empty())
+        .collect();
+
+    // Fall back to all <p> tags if no article/main found.
+    if texts.is_empty() {
+        let p_sel = Selector::parse("p").expect("valid selector");
+        texts = document
+            .select(&p_sel)
+            .flat_map(|el| el.text())
+            .map(|t| t.trim().to_owned())
+            .filter(|t| !t.is_empty())
+            .collect();
+    }
+
+    texts.join("\n\n")
+}
+
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -670,6 +1087,65 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().to_str().unwrap();
         assert_eq!(classify_source(path), SourceKind::LocalDirectory);
+    }
+
+    // ── new source kind tests ─────────────────────────────────────────────────
+
+    #[test]
+    fn classify_source_pdf_url() {
+        assert_eq!(
+            classify_source("https://example.com/paper.pdf"),
+            SourceKind::Pdf
+        );
+    }
+
+    #[test]
+    fn classify_source_podcast_rss_buzzsprout() {
+        assert_eq!(
+            classify_source("https://feeds.buzzsprout.com/123.rss"),
+            SourceKind::PodcastRss
+        );
+    }
+
+    #[test]
+    fn classify_source_webpage() {
+        assert_eq!(
+            classify_source("https://example.com/article"),
+            SourceKind::WebPage
+        );
+    }
+
+    /// YouTube detection must still win over the new WebPage fallback.
+    #[test]
+    fn classify_source_youtube_still_wins() {
+        assert_eq!(
+            classify_source("https://www.youtube.com/watch?v=abc"),
+            SourceKind::SingleVideo
+        );
+    }
+
+    #[test]
+    fn classify_source_http_plain_url_is_webpage() {
+        assert_eq!(
+            classify_source("http://example.com/article"),
+            SourceKind::WebPage
+        );
+    }
+
+    #[test]
+    fn classify_source_feed_host_is_podcast() {
+        assert_eq!(
+            classify_source("https://feeds.simplecast.com/abc123"),
+            SourceKind::PodcastRss
+        );
+    }
+
+    #[test]
+    fn classify_source_rss_extension_is_podcast() {
+        assert_eq!(
+            classify_source("https://example.com/mypodcast.rss"),
+            SourceKind::PodcastRss
+        );
     }
 
     // ── resolve_to_videos tests ───────────────────────────────────────────────
@@ -890,6 +1366,87 @@ mod tests {
         assert!(
             matches!(result, Err(LearnError::Acquire(_))),
             "malformed info.json should return LearnError::Acquire, got: {result:?}"
+        );
+    }
+
+    // ── helper unit tests ─────────────────────────────────────────────────────
+
+    #[test]
+    fn short_id_is_12_hex_chars() {
+        let id = short_id("https://example.com/test");
+        assert_eq!(id.len(), 12, "short_id must be 12 hex chars; got {id:?}");
+        assert!(
+            id.chars().all(|c| c.is_ascii_hexdigit()),
+            "short_id must be hex; got {id:?}"
+        );
+    }
+
+    #[test]
+    fn short_id_is_deterministic() {
+        let a = short_id("hello");
+        let b = short_id("hello");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn split_paragraphs_filters_short() {
+        let text =
+            "Short.\n\nThis is a long enough paragraph that exceeds fifty characters easily.";
+        let paras = split_paragraphs(text, 50);
+        assert_eq!(
+            paras.len(),
+            1,
+            "short paragraph must be filtered; got {paras:?}"
+        );
+        assert!(paras[0].contains("long enough"));
+    }
+
+    #[test]
+    fn write_pseudo_vtt_creates_webvtt_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = Utf8PathBuf::from_path_buf(dir.path().join("out.vtt")).unwrap();
+        let paras = vec![
+            "First paragraph.".to_owned(),
+            "Second paragraph.".to_owned(),
+        ];
+        write_pseudo_vtt(&paras, &path).unwrap();
+        let content = fs::read_to_string(&path).unwrap();
+        assert!(
+            content.starts_with("WEBVTT"),
+            "VTT must start with WEBVTT header"
+        );
+        assert!(
+            content.contains("First paragraph."),
+            "VTT must contain first para"
+        );
+        assert!(
+            content.contains("Second paragraph."),
+            "VTT must contain second para"
+        );
+        assert!(content.contains("-->"), "VTT must contain timestamp arrows");
+    }
+
+    #[test]
+    fn extract_webpage_text_extracts_paragraph_text() {
+        let html = r#"<html><body><p>Hello world.</p><p>Second paragraph.</p></body></html>"#;
+        let text = extract_webpage_text(html);
+        assert!(
+            text.contains("Hello world."),
+            "must contain p text; got: {text:?}"
+        );
+        assert!(
+            text.contains("Second paragraph."),
+            "must contain second p; got: {text:?}"
+        );
+    }
+
+    #[test]
+    fn extract_webpage_text_prefers_article() {
+        let html = r#"<html><body><article><p>Article content here.</p></article><p>Sidebar</p></body></html>"#;
+        let text = extract_webpage_text(html);
+        assert!(
+            text.contains("Article content here."),
+            "must extract article content; got: {text:?}"
         );
     }
 }

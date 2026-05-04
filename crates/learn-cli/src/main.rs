@@ -4,6 +4,8 @@ mod cloud;
 mod commands;
 mod doctor;
 mod map;
+mod push;
+mod quiz;
 pub(crate) mod summary;
 
 use camino::Utf8PathBuf;
@@ -187,34 +189,86 @@ enum Cmd {
         #[arg(long)]
         out: Option<Utf8PathBuf>,
     },
+    /// Push a topic KB (.rvf) to a Cognitum One Seed over LAN.
+    ///
+    /// Requires: Anthropic API key + Ruflo (RuVector ecosystem hard requirements).
+    ///
+    /// Examples:
+    ///   learn push french-cooking --seed 192.168.1.42
+    ///   learn push french-cooking --seed cognitum.local
+    ///   learn push french-cooking                        # auto-discover via mDNS
+    Push {
+        topic: String,
+        /// Seed IP address or mDNS hostname. Omit to auto-discover via mDNS.
+        #[arg(long)]
+        seed: Option<String>,
+    },
+    /// Flashcard-style Q&A review loop against the KB.
+    ///
+    /// Generates quiz cards from your KB using the Anthropic API, then runs
+    /// an interactive reveal-and-grade loop. Cards are cached for 24 hours.
+    ///
+    /// Requires ANTHROPIC_API_KEY.
+    ///
+    /// Examples:
+    ///   learn quiz french-cooking
+    ///   learn quiz retirement-planning --count 10
+    ///   learn quiz french-cooking --spaced
+    Quiz {
+        topic: String,
+        /// Number of cards to generate (default: 7).
+        #[arg(long, default_value = "7")]
+        count: usize,
+        /// Enable spaced-repetition scheduling (Ebbinghaus: knew→14d, unsure→4d, wrong→1d).
+        #[arg(long)]
+        spaced: bool,
+    },
 }
 
 /// Print the friendly orientation block and exit 0.
 /// Called when the binary is invoked with no arguments.
 fn print_orientation() -> ! {
     println!(
-        r#"Learn-RV — Your tool for building intelligent knowledge bases, stored in RuVector.
+        r#"Learn-RV — Make your Cognitum Seed an expert in anything.
+
+  French cooking. Retirement planning. Travel hacking. Whatever you want to master —
+  ingest the best sources, store them in RuVector (.rvf), and query them forever.
+
+▶ Requirements
+  export ANTHROPIC_API_KEY=sk-ant-...   Required for ask / apply / quiz / study
+  yt-dlp, ffmpeg                        Required for YouTube / podcast ingestion
+  pdftotext  (brew install poppler)     Required for PDF ingestion
+  learn doctor                          Verify your setup
 
 ▶ 30-second quickstart
-  learn ingest "<youtube-url>" --topic <name>     Add a video, channel, playlist, or search
-  learn ask <topic> "<question>"                  Cited answer from the KB
-  learn list                                      See every KB you've built
+  learn ingest "<url>" --topic <name>   YouTube, PDF, podcast RSS, or web page
+  learn study <topic> --depth medium    Auto-discover + ingest the best sources on any topic
+  learn ask <topic> "<question>"        Cited answer from the KB
+  learn push <topic> --seed <ip>        Push .rvf KB to your Cognitum Seed over LAN
+
+▶ Sources accepted by ingest
+  YouTube video / playlist / channel    https://youtu.be/… or @channel
+  Search                                ytsearch10:french cooking technique
+  PDF                                   https://example.com/paper.pdf  or  local file.pdf
+  Podcast RSS                           https://feeds.buzzsprout.com/123.rss
+  Web page                              https://example.com/article
+  Local audio / video                   /path/to/lecture.mp4
 
 ▶ Going deeper
-  learn study <topic> --depth medium              Autonomous curriculum (auto-discover videos)
-  learn apply <topic> "<task>"                    Generate a cited artifact (recipe, plan, code)
-  learn watch <topic> --cadence weekly            Schedule recurring channel ingestion
-  learn cloud <topic>                             SVG word cloud of topic KB content
-  learn map                                       PCA galaxy of all KB chunks in 2-D concept space
+  learn apply <topic> "<task>"          Generate a cited artifact (recipe, plan, code)
+  learn quiz <topic>                    Flashcard Q&A review loop (spaced repetition with --spaced)
+  learn watch <topic> --cadence weekly  Schedule recurring channel ingestion
+  learn cloud <topic>                   SVG word cloud of topic KB content
+  learn map                             PCA galaxy of all KB chunks in 2-D concept space
 
-▶ All 19 commands:    learn --help
+▶ All 21 commands:    learn --help
 ▶ Per-command flags:  learn <command> --help
 
 ▶ In Claude Code, you don't type any of this.
-  Just say what you want: "build me a KB on french cooking technique"
-  Claude finds the learn-rv skill and runs the right commands for you.
+  Just say "make me an expert in retirement planning" or "quiz me on french cooking"
+  and the learn-rv skill runs the right commands for you.
 
-KB location:    ~/Docs/KB/<topic>.rvf
+KB location:    ~/Docs/KB/<topic>.rvf   (RuVector binary — loads directly onto Cognitum Seed)
 Skill manifest: ~/.claude/skills/learn-rv/SKILL.md
 Repo:           https://github.com/stuinfla/learner-rv"#
     );
@@ -313,6 +367,12 @@ async fn main() {
             print_html,
         } => commands::run_cloud(topic, out, print_html, kb_root),
         Cmd::Map { topic, out } => commands::run_map(topic, out, kb_root),
+        Cmd::Push { topic, seed } => push::run_push(topic, seed, kb_root).await,
+        Cmd::Quiz {
+            topic,
+            count,
+            spaced,
+        } => quiz::run_quiz(topic, count, spaced, kb_root).await,
         // Doctor is dispatched above; this arm is unreachable but required by exhaustiveness.
         Cmd::Doctor => unreachable!("doctor dispatched before match"),
     };
@@ -579,21 +639,21 @@ mod tests {
         // Canonical list — one entry per Cmd variant.  Update this list when
         // adding or removing a subcommand; the test will fail if the count
         // in print_orientation() is left behind.
-        const CMD_VARIANT_COUNT: usize = 19; // Ingest Ask Apply Study WhoSaid
+        const CMD_VARIANT_COUNT: usize = 21; // Ingest Ask Apply Study WhoSaid
                                              // Timeline Compare Summarize List Status
-                                             // Watch Eval Forget Compact Doctor Chat Serve Cloud Map
+                                             // Watch Eval Forget Compact Doctor Chat Serve Cloud Map Push Quiz
                                              // Capture the orientation text and parse out the "▶ All N commands" figure.
         let orientation = format!("{CMD_VARIANT_COUNT}");
         // The orientation block in print_orientation() hard-codes the same integer.
         // We match against the same source-of-truth constant so the test is
         // self-consistent — any mismatch between the two constants is a bug.
         assert_eq!(
-            CMD_VARIANT_COUNT, 19,
+            CMD_VARIANT_COUNT, 21,
             "Update CMD_VARIANT_COUNT and '▶ All N commands' in print_orientation() together"
         );
 
         // Also verify the orientation string contains the expected count.
-        let orientation_text = "▶ All 19 commands:    learn --help";
+        let orientation_text = "▶ All 21 commands:    learn --help";
         let count_str = orientation_text
             .split("All ")
             .nth(1)

@@ -26,7 +26,7 @@ pub mod aimds;
 use aimds::ScanVerdict;
 use async_trait::async_trait;
 use learn_core::{Answer, Citation, Hit, LearnError, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::info;
 use url::Url;
 
@@ -77,7 +77,38 @@ Source excerpts:
 {context_snippets}\
 ";
 
+/// System prompt for `generate_quiz_cards`.
+pub const QUIZ_SYSTEM_PROMPT: &str = "\
+You are a quiz generator. Given source excerpts from a knowledge base, \
+generate Q&A flashcard pairs. Each pair must be directly answerable from \
+the provided excerpts. Test real, specific knowledge — not trivia or vague \
+generalities. Return ONLY a JSON array. Each element must have exactly these \
+keys: \"question\" (string), \"answer\" (string), \"chunk_id\" (string — \
+copy the excerpt index label, e.g. \"1\" or \"3\"). \
+Do NOT wrap the array in any prose or markdown code fences.\
+";
+
 // ── Trait ────────────────────────────────────────────────────────────────────
+
+/// A single flashcard Q&A pair generated from KB chunks.
+///
+/// Serialises to / deserialises from JSON for the on-disk cache at
+/// `<kb_root>/_quiz/<topic>.jsonl`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuizCard {
+    /// The question the learner must answer.
+    pub question: String,
+    /// The model-generated answer grounded in the KB.
+    pub answer: String,
+    /// The chunk ID from which this card was derived.
+    pub source_chunk_id: String,
+    /// YouTube video ID — used to build a citation link.
+    pub video_id: String,
+    /// Timestamp offset in seconds — appended to the citation URL (`?t=N`).
+    pub start_seconds: f64,
+    /// Human-readable video title (best-effort from chunk metadata).
+    pub video_title: Option<String>,
+}
 
 /// Synthesize an [`Answer`] from retrieval [`Hit`]s.
 ///
@@ -92,6 +123,18 @@ pub trait Synthesizer: Send + Sync {
 
     /// Complete a structured `task` for `topic`, returning output in `format`.
     async fn apply(&self, topic: &str, task: &str, format: &str, hits: &[Hit]) -> Result<Answer>;
+
+    /// Generate `count` flashcard Q&A pairs from the provided `hits`.
+    ///
+    /// Cards must be directly answerable from the supplied excerpts.
+    /// If the model returns fewer than `count`, that is acceptable — callers
+    /// must not assume they receive exactly `count` cards back.
+    async fn generate_quiz_cards(
+        &self,
+        topic: &str,
+        hits: &[Hit],
+        count: usize,
+    ) -> Result<Vec<QuizCard>>;
 }
 
 // ── Dispatch ─────────────────────────────────────────────────────────────────
@@ -385,6 +428,90 @@ impl Synthesizer for AnthropicSynthesizer {
             ScanVerdict::Skipped(_) => Ok(answer),
         }
     }
+
+    async fn generate_quiz_cards(
+        &self,
+        topic: &str,
+        hits: &[Hit],
+        count: usize,
+    ) -> Result<Vec<QuizCard>> {
+        let api_key = std::env::var("ANTHROPIC_API_KEY").map_err(|_| {
+            LearnError::Synth(
+                "ANTHROPIC_API_KEY not set — quiz generation requires the Anthropic API. \
+                 Set ANTHROPIC_API_KEY and retry."
+                    .into(),
+            )
+        })?;
+        let model = std::env::var("LEARN_ANTHROPIC_MODEL")
+            .unwrap_or_else(|_| "claude-opus-4-7".to_string());
+
+        let context_block = format_context(hits);
+        let user_msg = format!(
+            "Topic: {topic}\n\nGenerate {count} Q&A flashcard pairs.\n\nSource excerpts:\n{context_block}"
+        );
+
+        let body = serde_json::json!({
+            "model": model,
+            "max_tokens": 4096,
+            "system": QUIZ_SYSTEM_PROMPT,
+            "messages": [{"role": "user", "content": user_msg}],
+        });
+
+        let raw = post_with_retries(&self.client, &api_key, &body).await?;
+        let parsed: AnthropicResponse = serde_json::from_str(&raw)
+            .map_err(|e| LearnError::Synth(format!("malformed Anthropic response: {e}")))?;
+
+        let text = parsed
+            .content
+            .into_iter()
+            .filter(|c| c.r#type == "text")
+            .map(|c| c.text)
+            .collect::<Vec<_>>()
+            .join("");
+
+        // Strip optional markdown code fences the model might emit despite instructions.
+        let json_str = text
+            .trim()
+            .trim_start_matches("```json")
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim();
+
+        // Each element: { "question": "...", "answer": "...", "chunk_id": "N" }
+        #[derive(Deserialize)]
+        struct RawCard {
+            question: String,
+            answer: String,
+            chunk_id: String,
+        }
+
+        let raw_cards: Vec<RawCard> = serde_json::from_str(json_str).map_err(|e| {
+            LearnError::Synth(format!(
+                "quiz card JSON parse failed: {e}\nRaw response excerpt: {}",
+                json_str.chars().take(300).collect::<String>()
+            ))
+        })?;
+
+        // Build a lookup: "1" → &Hit (index 0), "2" → &Hit (index 1), etc.
+        let cards = raw_cards
+            .into_iter()
+            .filter_map(|rc| {
+                // chunk_id from the model is the 1-based excerpt index.
+                let idx: usize = rc.chunk_id.trim().parse::<usize>().ok()?.saturating_sub(1);
+                let hit = hits.get(idx)?;
+                Some(QuizCard {
+                    question: rc.question,
+                    answer: rc.answer,
+                    source_chunk_id: hit.chunk.chunk_id.clone(),
+                    video_id: hit.chunk.video_id.clone(),
+                    start_seconds: hit.chunk.start_seconds,
+                    video_title: None,
+                })
+            })
+            .collect();
+
+        Ok(cards)
+    }
 }
 
 // ── RuvllmSynthesizer ────────────────────────────────────────────────────────
@@ -629,6 +756,19 @@ impl Synthesizer for RuvllmSynthesizer {
             )),
             ScanVerdict::Skipped(_) => Ok(answer),
         }
+    }
+
+    async fn generate_quiz_cards(
+        &self,
+        _topic: &str,
+        _hits: &[Hit],
+        _count: usize,
+    ) -> Result<Vec<QuizCard>> {
+        Err(LearnError::Synth(
+            "quiz generation requires ANTHROPIC_API_KEY — \
+             set it and retry (unset LEARN_SYNTH_LOCAL to use the Anthropic path)"
+                .to_string(),
+        ))
     }
 }
 
@@ -902,6 +1042,28 @@ mod tests {
                 None => std::env::remove_var(self.key),
             }
         }
+    }
+
+    // ── QuizCard serde round-trip ─────────────────────────────────────────────
+
+    #[test]
+    fn quiz_card_serializes() {
+        let card = QuizCard {
+            question: "What temperature should butter be for croissant dough?".to_string(),
+            answer: "Around 4°C / 40°F so layers stay distinct.".to_string(),
+            source_chunk_id: "chunk-001".to_string(),
+            video_id: "QZMljuD10sU".to_string(),
+            start_seconds: 342.0,
+            video_title: Some("French Pastry Masterclass".to_string()),
+        };
+        let json = serde_json::to_string(&card).expect("serialize must succeed");
+        let back: QuizCard = serde_json::from_str(&json).expect("deserialize must succeed");
+        assert_eq!(back.question, card.question);
+        assert_eq!(back.answer, card.answer);
+        assert_eq!(back.source_chunk_id, card.source_chunk_id);
+        assert_eq!(back.video_id, card.video_id);
+        assert!((back.start_seconds - card.start_seconds).abs() < f64::EPSILON);
+        assert_eq!(back.video_title, card.video_title);
     }
 
     // ── select_synthesizer_with_empty_env_var_documents_current_behavior ─────
