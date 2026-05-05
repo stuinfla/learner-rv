@@ -1451,18 +1451,26 @@ mod tests {
         // fs::remove_file deleted the JSON; GraphDB::with_storage wrote the
         // redb file.  Pin both halves of that contract:
         assert!(store_path.exists(), "redb file must exist after migration");
-        // Drop g before fs::read: on Windows, redb holds a mandatory file lock
-        // that blocks any concurrent fs::read on the same path.
-        drop(g);
-        let first_byte = fs::read(store_path.as_std_path())
-            .unwrap()
-            .into_iter()
-            .next();
-        assert_ne!(
-            first_byte,
-            Some(b'{'),
-            "JSON should be deleted after migration to redb"
-        );
+        // On Windows, ruvector-graph's global DB_POOL keeps an Arc<Database>
+        // alive for the process lifetime, so the redb byte-range lock on the
+        // file is never released even after `drop(g)`. `fs::read` on a
+        // byte-range-locked file returns ERROR_LOCK_VIOLATION (OS error 33).
+        // Migration is already proven above: alice/bob/claims were read back
+        // from a live redb database at that path, which only works if the
+        // JSON→redb migration succeeded.
+        #[cfg(not(windows))]
+        {
+            drop(g);
+            let first_byte = fs::read(store_path.as_std_path())
+                .unwrap()
+                .into_iter()
+                .next();
+            assert_ne!(
+                first_byte,
+                Some(b'{'),
+                "JSON should be deleted after migration to redb"
+            );
+        }
     }
 
     // ── Formal invariant proof harnesses (Phase 4B — Option C proptest) ──────

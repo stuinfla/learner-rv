@@ -134,18 +134,18 @@ jobs:
             use_cross: false
             cargo_exclude: "--exclude learn-asr"
 
-          # 4. Linux ARM64 -- best-effort (Phase 5), cross-compile via `cross`.
-          # Same learn-asr exclusion as Linux x86_64. Note: `cross` runs the
-          # build inside a Docker container that mounts only the project dir,
-          # so the `../ruvector` sibling path-dependency is unreachable. This
-          # target stays `continue-on-error: true` until ruvector is published
-          # to crates.io or the workflow vendors it under the project tree.
+          # 4. Linux ARM64 -- best-effort (Phase 5), native cross-compilation.
+          # Uses gcc-aarch64-linux-gnu linker (available on ubuntu-latest) so
+          # the ../ruvector sibling path-dependency remains visible to cargo.
+          # cross (Docker) was dropped: it mounts only the project dir, making
+          # ../ruvector unreachable. All TLS uses rustls (pure Rust), so no
+          # system OpenSSL is needed for cross-compilation.
           - target: aarch64-unknown-linux-gnu
             runner: ubuntu-latest
             os: linux
             archive_ext: tar.gz
             best_effort: true
-            use_cross: true
+            use_cross: false
             cargo_exclude: "--exclude learn-asr"
 
           # 5. Windows -- best-effort (Phase 5). Same learn-asr exclusion; the
@@ -177,7 +177,7 @@ jobs:
       # ----- Platform deps ---------------------------------------------------
 
       - name: Install Linux build deps
-        if: matrix.os == 'linux' && matrix.use_cross != true
+        if: matrix.os == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -186,7 +186,8 @@ jobs:
             clang \
             libclang-dev \
             pkg-config \
-            libssl-dev
+            libssl-dev \
+            gcc-aarch64-linux-gnu
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -194,12 +195,6 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: ${{ matrix.target }}
           components: rustfmt, clippy
-
-      - name: Install cross (Linux ARM64 only)
-        if: matrix.use_cross == true
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cross
 
       # ----- Caches ----------------------------------------------------------
 
@@ -226,28 +221,23 @@ jobs:
 
       # ----- Build -----------------------------------------------------------
 
-      - name: cargo build --release (native)
-        if: matrix.use_cross != true
+      - name: cargo build --release
         shell: bash
         env:
           BUILD_TARGET: ${{ matrix.target }}
           CARGO_EXCLUDE: ${{ matrix.cargo_exclude }}
+          # Linker for Linux ARM64 native cross-compilation (no Docker).
+          # All TLS uses rustls (pure Rust), so no OpenSSL sysroot is needed.
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         run: |
           cargo build --release --workspace $CARGO_EXCLUDE --target "$BUILD_TARGET"
 
-      - name: cross build --release (cross-compile)
-        if: matrix.use_cross == true
-        env:
-          BUILD_TARGET: ${{ matrix.target }}
-          CARGO_EXCLUDE: ${{ matrix.cargo_exclude }}
-        run: cross build --release --workspace $CARGO_EXCLUDE --target "$BUILD_TARGET"
-
       # ----- Test ------------------------------------------------------------
-      # Skip cross-compiled tests (can't run aarch64 binaries on x86 host).
+      # Skip cross-compiled tests (can't run aarch64 binaries on an x86 host).
       # ANTHROPIC_API_KEY-gated tests run only when the secret is provided.
 
       - name: cargo test --workspace --no-fail-fast
-        if: matrix.use_cross != true
+        if: matrix.target != 'aarch64-unknown-linux-gnu'
         shell: bash
         env:
           BUILD_TARGET: ${{ matrix.target }}
