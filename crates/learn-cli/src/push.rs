@@ -216,6 +216,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn rvf_path_for_topic_constructs_correctly() {
         let kb_root = Utf8PathBuf::from("/home/user/Docs/KB");
         let path = rvf_path_for_topic("french-cooking", &kb_root);
@@ -226,10 +227,20 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn rvf_path_for_topic_nested_root() {
         let kb_root = Utf8PathBuf::from("/tmp/test-kb");
         let path = rvf_path_for_topic("rust-programming", &kb_root);
         assert_eq!(path.as_str(), "/tmp/test-kb/rust-programming.rvf");
+    }
+
+    #[test]
+    fn rvf_path_for_topic_joins_correctly() {
+        let dir = tempfile::tempdir().unwrap();
+        let kb_root = Utf8PathBuf::from_path_buf(dir.path().to_path_buf()).unwrap();
+        let path = rvf_path_for_topic("my-topic", &kb_root);
+        assert!(path.as_str().ends_with("my-topic.rvf"));
+        assert!(path.starts_with(&kb_root));
     }
 
     #[tokio::test]

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 200" width="860" height="200" role="img" aria-label="Learn-RV four-step quickstart: download, check, ingest, ask">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fafbfc"/>
+      <stop offset="100%" stop-color="#eef1f4"/>
+    </linearGradient>
+    <linearGradient id="step1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#dbeafe"/>
+      <stop offset="100%" stop-color="#bfdbfe"/>
+    </linearGradient>
+    <linearGradient id="step2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d1fae5"/>
+      <stop offset="100%" stop-color="#a7f3d0"/>
+    </linearGradient>
+    <linearGradient id="step3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ede9fe"/>
+      <stop offset="100%" stop-color="#ddd6fe"/>
+    </linearGradient>
+    <linearGradient id="step4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fce7f3"/>
+      <stop offset="100%" stop-color="#fbcfe8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="860" height="200" fill="url(#bg)" rx="12"/>
+  <text x="430" y="26" fill="#374151" font-family="system-ui,sans-serif" font-size="13" font-weight="600" text-anchor="middle" letter-spacing="1">YOUR INSTANT EXPERT IN FOUR STEPS</text>
+
+  <!-- Step 1: Download -->
+  <rect x="16" y="40" width="190" height="144" rx="10" fill="url(#step1)" stroke="#93c5fd" stroke-width="1.5"/>
+  <circle cx="50" cy="70" r="14" fill="#3b82f6"/>
+  <text x="50" y="75" fill="white" font-family="system-ui,sans-serif" font-size="14" font-weight="bold" text-anchor="middle">1</text>
+  <text x="111" y="72" fill="#1e40af" font-family="system-ui,sans-serif" font-size="13" font-weight="700" text-anchor="middle">Download</text>
+  <text x="111" y="96" fill="#1e3a8a" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">One curl command.</text>
+  <text x="111" y="112" fill="#1e3a8a" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">No account needed.</text>
+  <text x="111" y="128" fill="#1e3a8a" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">No cloud database.</text>
+  <text x="111" y="154" fill="#3b82f6" font-family="monospace,sans-serif" font-size="10" font-weight="bold" text-anchor="middle">learn doctor</text>
+  <text x="111" y="170" fill="#6b7280" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle">to verify everything's ready</text>
+
+  <!-- Arrow 1→2 -->
+  <path d="M208 112 L222 112" stroke="#9ca3af" stroke-width="2" fill="none"/>
+  <polygon points="220,108 228,112 220,116" fill="#9ca3af"/>
+
+  <!-- Step 2: Pick a topic -->
+  <rect x="228" y="40" width="190" height="144" rx="10" fill="url(#step2)" stroke="#6ee7b7" stroke-width="1.5"/>
+  <circle cx="262" cy="70" r="14" fill="#10b981"/>
+  <text x="262" y="75" fill="white" font-family="system-ui,sans-serif" font-size="14" font-weight="bold" text-anchor="middle">2</text>
+  <text x="323" y="72" fill="#065f46" font-family="system-ui,sans-serif" font-size="13" font-weight="700" text-anchor="middle">Pick a Topic</text>
+  <text x="323" y="96" fill="#064e3b" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">Anything you want to</text>
+  <text x="323" y="112" fill="#064e3b" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">know deeply: cooking,</text>
+  <text x="323" y="128" fill="#064e3b" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">investing, medicine...</text>
+  <text x="323" y="154" fill="#059669" font-family="monospace,sans-serif" font-size="10" font-weight="bold" text-anchor="middle">learn study "topic"</text>
+  <text x="323" y="170" fill="#6b7280" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle">it finds the best videos</text>
+
+  <!-- Arrow 2→3 -->
+  <path d="M420 112 L434 112" stroke="#9ca3af" stroke-width="2" fill="none"/>
+  <polygon points="432,108 440,112 432,116" fill="#9ca3af"/>
+
+  <!-- Step 3: Ingest -->
+  <rect x="440" y="40" width="190" height="144" rx="10" fill="url(#step3)" stroke="#c4b5fd" stroke-width="1.5"/>
+  <circle cx="474" cy="70" r="14" fill="#7c3aed"/>
+  <text x="474" y="75" fill="white" font-family="system-ui,sans-serif" font-size="14" font-weight="bold" text-anchor="middle">3</text>
+  <text x="535" y="72" fill="#3730a3" font-family="system-ui,sans-serif" font-size="13" font-weight="700" text-anchor="middle">Build Your KB</text>
+  <text x="535" y="96" fill="#312e81" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">Downloads, transcribes,</text>
+  <text x="535" y="112" fill="#312e81" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">indexes — all on your</text>
+  <text x="535" y="128" fill="#312e81" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">device. One .rvf file.</text>
+  <text x="535" y="154" fill="#6d28d9" font-family="monospace,sans-serif" font-size="10" font-weight="bold" text-anchor="middle">learn ingest &lt;url&gt;</text>
+  <text x="535" y="170" fill="#6b7280" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle">your expert is being built</text>
+
+  <!-- Arrow 3→4 -->
+  <path d="M632 112 L646 112" stroke="#9ca3af" stroke-width="2" fill="none"/>
+  <polygon points="644,108 652,112 644,116" fill="#9ca3af"/>
+
+  <!-- Step 4: Ask anything -->
+  <rect x="652" y="40" width="192" height="144" rx="10" fill="url(#step4)" stroke="#f9a8d4" stroke-width="1.5"/>
+  <circle cx="686" cy="70" r="14" fill="#db2777"/>
+  <text x="686" y="75" fill="white" font-family="system-ui,sans-serif" font-size="14" font-weight="bold" text-anchor="middle">4</text>
+  <text x="748" y="72" fill="#831843" font-family="system-ui,sans-serif" font-size="13" font-weight="700" text-anchor="middle">Ask Anything</text>
+  <text x="748" y="96" fill="#831843" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">Cited answers from the</text>
+  <text x="748" y="112" fill="#831843" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">actual videos. Push to</text>
+  <text x="748" y="128" fill="#831843" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle">your Seed to keep it.</text>
+  <text x="748" y="154" fill="#db2777" font-family="monospace,sans-serif" font-size="10" font-weight="bold" text-anchor="middle">learn ask &lt;topic&gt; "..."</text>
+  <text x="748" y="170" fill="#6b7280" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle">instant expert, on your device</text>
+</svg>

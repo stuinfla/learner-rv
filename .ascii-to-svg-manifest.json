@@ -1,54 +1,27 @@
 {
   "version": "1.0.0",
-  "lastSync": "2026-05-02T20:45:00Z",
+  "lastSync": "2026-05-05T13:32:00Z",
   "diagrams": [
     {
-      "id": "top-level-invocation",
+      "id": "pipeline",
       "sourceFile": "README.md",
-      "svgFile": "assets/diagrams/top-level-invocation.svg",
-      "lastConverted": "2026-05-02T20:45:00Z"
+      "svgFile": "assets/pipeline.svg",
+      "description": "Learn-RV ingest pipeline (8-stage vertical flow)",
+      "lastConverted": "2026-05-05T13:32:00Z"
     },
     {
-      "id": "architecture",
+      "id": "seed-workflow",
       "sourceFile": "README.md",
-      "svgFile": "assets/diagrams/architecture.svg",
-      "lastConverted": "2026-05-02T20:45:00Z"
+      "svgFile": "assets/seed-workflow.svg",
+      "description": "Cognitum One Seed workflow (Mac → Transfer → Seed)",
+      "lastConverted": "2026-05-05T13:32:00Z"
     },
     {
-      "id": "ingest-pipeline",
+      "id": "three-modes",
       "sourceFile": "README.md",
-      "svgFile": "assets/diagrams/ingest-pipeline.svg",
-      "lastConverted": "2026-05-02T20:45:00Z"
-    },
-    {
-      "id": "query-path",
-      "sourceFile": "README.md",
-      "svgFile": "assets/diagrams/query-path.svg",
-      "lastConverted": "2026-05-02T20:45:00Z"
-    },
-    {
-      "id": "storage-model",
-      "sourceFile": "README.md",
-      "svgFile": "assets/diagrams/storage-model.svg",
-      "lastConverted": "2026-05-02T20:45:00Z"
-    },
-    {
-      "id": "test-pyramid",
-      "sourceFile": "README.md",
-      "svgFile": "assets/diagrams/test-pyramid.svg",
-      "lastConverted": "2026-05-02T20:45:00Z"
-    },
-    {
-      "id": "capability-matrix",
-      "sourceFile": "README.md",
-      "svgFile": "assets/diagrams/capability-matrix.svg",
-      "lastConverted": "2026-05-02T22:00:00Z"
-    },
-    {
-      "id": "learning-flywheel",
-      "sourceFile": "README.md",
-      "svgFile": "assets/diagrams/learning-flywheel.svg",
-      "lastConverted": "2026-05-02T22:00:00Z"
+      "svgFile": "assets/three-modes.svg",
+      "description": "Three ways to use Learn-RV (Claude Skill / CLI / MCP Server)",
+      "lastConverted": "2026-05-05T13:32:00Z"
     }
   ]
 }

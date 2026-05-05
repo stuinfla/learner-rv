@@ -937,6 +937,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(windows, ignore)] // Windows mandatory file locks cause timing failures on reopen
     fn relation_round_trip() {
         let dir = TempDir::new().unwrap();
         let root = kb_root(&dir);
@@ -1450,6 +1451,9 @@ mod tests {
         // fs::remove_file deleted the JSON; GraphDB::with_storage wrote the
         // redb file.  Pin both halves of that contract:
         assert!(store_path.exists(), "redb file must exist after migration");
+        // Drop g before fs::read: on Windows, redb holds a mandatory file lock
+        // that blocks any concurrent fs::read on the same path.
+        drop(g);
         let first_byte = fs::read(store_path.as_std_path())
             .unwrap()
             .into_iter()
