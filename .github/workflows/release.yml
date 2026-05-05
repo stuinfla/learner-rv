@@ -134,14 +134,12 @@ jobs:
             use_cross: false
             cargo_exclude: "--exclude learn-asr"
 
-          # 4. Linux ARM64 -- best-effort (Phase 5), native cross-compilation.
-          # Uses gcc-aarch64-linux-gnu linker (available on ubuntu-latest) so
-          # the ../ruvector sibling path-dependency remains visible to cargo.
-          # cross (Docker) was dropped: it mounts only the project dir, making
-          # ../ruvector unreachable. All TLS uses rustls (pure Rust), so no
-          # system OpenSSL is needed for cross-compilation.
+          # 4. Linux ARM64 -- best-effort (Phase 5), NATIVE build on ARM64 runner.
+          # GitHub provides ubuntu-24.04-arm (4-core ARM64) for public repos.
+          # Native build avoids every cross-compilation sysroot issue (ring, onig,
+          # ort) and keeps ../ruvector visible — no Docker involved.
           - target: aarch64-unknown-linux-gnu
-            runner: ubuntu-latest
+            runner: ubuntu-24.04-arm
             os: linux
             archive_ext: tar.gz
             best_effort: true
@@ -186,8 +184,7 @@ jobs:
             clang \
             libclang-dev \
             pkg-config \
-            libssl-dev \
-            gcc-aarch64-linux-gnu
+            libssl-dev
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -226,22 +223,14 @@ jobs:
         env:
           BUILD_TARGET: ${{ matrix.target }}
           CARGO_EXCLUDE: ${{ matrix.cargo_exclude }}
-          # ARM64 cross-compilation (no Docker).  These vars are only active
-          # when the target is aarch64-unknown-linux-gnu; Cargo and cc ignore
-          # them for all other targets.
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
-          CXX_aarch64_unknown_linux_gnu: aarch64-linux-gnu-g++
-          AR_aarch64_unknown_linux_gnu: aarch64-linux-gnu-ar
         run: |
           cargo build --release --workspace $CARGO_EXCLUDE --target "$BUILD_TARGET"
 
       # ----- Test ------------------------------------------------------------
-      # Skip cross-compiled tests (can't run aarch64 binaries on an x86 host).
+      # All matrix entries run tests natively on their target runner.
       # ANTHROPIC_API_KEY-gated tests run only when the secret is provided.
 
       - name: cargo test --workspace --no-fail-fast
-        if: matrix.target != 'aarch64-unknown-linux-gnu'
         shell: bash
         env:
           BUILD_TARGET: ${{ matrix.target }}
