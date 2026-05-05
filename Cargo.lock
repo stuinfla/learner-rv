@@ -1773,7 +1773,7 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "learn-acquire"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "camino",
@@ -1794,7 +1794,7 @@ dependencies = [
 
 [[package]]
 name = "learn-asr"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "camino",
@@ -1810,7 +1810,7 @@ dependencies = [
 
 [[package]]
 name = "learn-chat"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "camino",
@@ -1830,7 +1830,7 @@ dependencies = [
 
 [[package]]
 name = "learn-chunk"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "learn-core",
@@ -1841,7 +1841,7 @@ dependencies = [
 
 [[package]]
 name = "learn-cli"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "async-trait",
  "camino",
@@ -1877,7 +1877,7 @@ dependencies = [
 
 [[package]]
 name = "learn-coherence"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "learn-core",
  "ruvector-coherence",
@@ -1888,7 +1888,7 @@ dependencies = [
 
 [[package]]
 name = "learn-core"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "camino",
@@ -1901,7 +1901,7 @@ dependencies = [
 
 [[package]]
 name = "learn-discover"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1918,7 +1918,7 @@ dependencies = [
 
 [[package]]
 name = "learn-embed"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "camino",
@@ -1938,7 +1938,7 @@ dependencies = [
 
 [[package]]
 name = "learn-eval"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1954,7 +1954,7 @@ dependencies = [
 
 [[package]]
 name = "learn-frames"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "base64 0.22.1",
  "camino",
@@ -1971,7 +1971,7 @@ dependencies = [
 
 [[package]]
 name = "learn-graph"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "camino",
  "learn-core",
@@ -1986,7 +1986,7 @@ dependencies = [
 
 [[package]]
 name = "learn-index"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "blake3",
@@ -2003,7 +2003,7 @@ dependencies = [
 
 [[package]]
 name = "learn-integration"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "camino",
@@ -2015,7 +2015,7 @@ dependencies = [
 
 [[package]]
 name = "learn-reasoning"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "camino",
  "learn-core",
@@ -2027,7 +2027,7 @@ dependencies = [
 
 [[package]]
 name = "learn-retrieve"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "async-trait",
  "camino",
@@ -2042,7 +2042,7 @@ dependencies = [
 
 [[package]]
 name = "learn-serve"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "blake3",
@@ -2063,7 +2063,7 @@ dependencies = [
 
 [[package]]
 name = "learn-synth"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "async-trait",
