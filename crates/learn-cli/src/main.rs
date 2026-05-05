@@ -397,7 +397,11 @@ async fn main() {
             force,
             no_summary,
         } => commands::run_import(dir, topic, force, no_summary, kb_root).await,
-        Cmd::Push { topic, seed, seed_index } => push::run_push(topic, seed, seed_index, kb_root).await,
+        Cmd::Push {
+            topic,
+            seed,
+            seed_index,
+        } => push::run_push(topic, seed, seed_index, kb_root).await,
         Cmd::Quiz {
             topic,
             count,
