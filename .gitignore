@@ -30,9 +30,10 @@ ruvector.db
 *.sqlite
 *.sqlite3
 
-# Environment
+# Environment — .env.example is safe to commit (no real secrets)
 .env
 .env.local
+!.env.example
 
 # The ruvector symlink lives as a sibling to this workspace (../ruvector -> RuVector_Clean).
 # It is outside this repo so git never tracks it. See BUILDING.md.
