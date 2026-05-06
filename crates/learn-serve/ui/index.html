@@ -492,6 +492,110 @@ const ChatMsg = ({ m }) => {
 
 const Skel = () => <div className="glass" style={{borderRadius:10,padding:'12px 14px',marginBottom:6,border:'1px solid var(--bd)'}}><div className="sk" style={{height:11,width:'58%',marginBottom:8}}/><div className="sk" style={{height:9,width:'40%'}}/></div>;
 
+// ── Ingest Pipeline Visual ────────────────────────────────────────────────────
+const PIPE_STAGES = [
+  {icon:'🎬', label:'Video',      key:'video'},
+  {icon:'📝', label:'Transcript', key:'transcript'},
+  {icon:'🖼',  label:'Frames',    key:'frames'},
+  {icon:'⚡', label:'Vectors',   key:'vectors'},
+  {icon:'💾', label:'Local KB',  key:'local'},
+  {icon:'🧠', label:'Seed',      key:'seed'},
+];
+
+const IngestPipeline = ({ stage, pct, seedIp, running }) => {
+  const stageColors = [
+    'rgba(59,130,246,.9)',   // video — blue
+    'rgba(6,182,212,.9)',    // transcript — cyan
+    'rgba(139,92,246,.9)',   // frames — violet
+    'rgba(245,158,11,.9)',   // vectors — amber
+    'rgba(16,185,129,.9)',   // local — green
+    'rgba(16,185,129,.9)',   // seed — green
+  ];
+  return (
+    <div style={{borderRadius:12,border:'1px solid var(--bd)',padding:'14px 12px',background:'rgba(2,6,15,.55)'}}>
+      {/* Stage nodes */}
+      <div style={{display:'flex',alignItems:'center',gap:0,marginBottom:12}}>
+        {PIPE_STAGES.map((s,i)=>{
+          const isActive = stage===i && running;
+          const isDone   = stage>i || (stage===i && !running);
+          const isPending= stage<i;
+          const isSeed   = i===5;
+          const seedLabel= isSeed&&seedIp ? seedIp : s.label;
+          return (
+            <div key={s.key} style={{display:'flex',alignItems:'center',flex:1,flexDirection:'column',gap:0}}>
+              <div style={{display:'flex',alignItems:'center',width:'100%'}}>
+                {/* Flow line before */}
+                {i>0&&<div style={{flex:1,height:2,background:isDone||isActive
+                  ?`linear-gradient(90deg,${stageColors[i-1]},${stageColors[i]})`
+                  :'var(--bd)',transition:'background .6s ease',position:'relative',overflow:'hidden'}}>
+                  {isActive&&<div style={{position:'absolute',top:0,left:0,right:0,bottom:0,
+                    background:`linear-gradient(90deg,transparent,${stageColors[i]},transparent)`,
+                    animation:'shimmer 1.2s infinite',backgroundSize:'200% 100%'}}/>}
+                </div>}
+                {/* Node circle */}
+                <div style={{
+                  width:isSeed?32:26, height:isSeed?32:26, borderRadius:'50%', flexShrink:0,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:isSeed?14:12,
+                  border:`1px solid ${isDone?stageColors[i]:isActive?stageColors[i]:'var(--bd)'}`,
+                  background:isDone?`${stageColors[i].replace('.9','0.2')}`:isActive?`${stageColors[i].replace('.9','0.15')}`:'transparent',
+                  boxShadow:isActive?`0 0 10px ${stageColors[i].replace('.9','0.5')}`:'none',
+                  animation:isActive?'pulse-g 1.5s ease infinite':'none',
+                  transition:'all .4s ease',
+                  position:'relative',
+                }}>
+                  {isDone&&!isActive ? <span style={{fontSize:10,color:stageColors[i]}}>✓</span> : <span>{s.icon}</span>}
+                </div>
+                {/* Flow line after (not last) */}
+                {i<PIPE_STAGES.length-1&&<div style={{flex:1,height:2,background:isDone?stageColors[i]:'var(--bd)',transition:'background .6s ease'}}/>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Labels */}
+      <div style={{display:'flex',gap:0}}>
+        {PIPE_STAGES.map((s,i)=>{
+          const isDone = stage>i||(stage===i&&!running);
+          const isActive = stage===i&&running;
+          const isSeed = i===5;
+          const lbl = isSeed&&seedIp ? seedIp : s.label;
+          return (
+            <div key={s.key} style={{flex:1,textAlign:'center',fontFamily:'"IBM Plex Mono",monospace',
+              fontSize:isSeed?9:8,lineHeight:1.3,
+              color:isDone||isActive?'var(--t2)':'var(--t3)',
+              fontWeight:isActive?600:400,
+              transition:'color .3s',
+              overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',padding:'0 1px'}}>
+              {lbl}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Progress bar */}
+      {pct>0&&<div style={{marginTop:12,borderRadius:4,height:3,background:'var(--void)',overflow:'hidden'}}>
+        <div className={running?'bar-sh':''} style={{height:'100%',width:`${pct}%`,borderRadius:4,
+          transition:'width .5s ease',background:!running&&pct>0?'var(--grn)':undefined}}/>
+      </div>}
+
+      {/* Status text */}
+      <div style={{marginTop:8,fontSize:10,color:'var(--t2)',textAlign:'center',fontFamily:'"IBM Plex Mono",monospace',minHeight:14}}>
+        {running&&stage===0&&'Fetching source…'}
+        {running&&stage===1&&'Downloading transcript…'}
+        {running&&stage===2&&'Extracting & captioning frames…'}
+        {running&&stage===3&&'Embedding and indexing vectors…'}
+        {running&&stage===4&&'Writing to local KB…'}
+        {running&&stage===5&&`Syncing to Seed ${seedIp||''}…`}
+        {!running&&pct===100&&stage===5&&<span style={{color:'var(--grn)'}}>Stored locally + synced to Seed {seedIp}</span>}
+        {!running&&pct===100&&stage===4&&<span style={{color:'var(--grn)'}}>Stored locally in ~/Docs/KB/</span>}
+        {!running&&pct===0&&stage>=0&&'Ready'}
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const [live,setLive]     = useState(false);
   const [topics,setTopics] = useState([]);
@@ -505,11 +609,24 @@ const Dashboard = () => {
   const [inLog,setInLog]   = useState([]);
   const [inPct,setInPct]   = useState(0);
   const [ingst,setIngst]   = useState(false);
+  const [inStage,setInStage] = useState(-1); // -1=idle, 0-5=active stage
   const [seed,setSeed]     = useState({connected:false,ip:null});
   const [model,setModel]   = useState('all-MiniLM-L6-v2');
   const chatEnd = useRef(null);
   const inLogR  = useRef(null);
   const lcls    = {info:'li',success:'ls',active:'la',warn:'lw'};
+
+  // Map log messages to pipeline stage index
+  const stageFromMsg = (msg) => {
+    const m = msg.toLowerCase();
+    if (m.includes('resolving') || m.includes('fetching metadata')) return 0;
+    if (m.includes('transcript') || m.includes('segments')) return 1;
+    if (m.includes('keyframe') || m.includes('captioning') || m.includes('frame')) return 2;
+    if (m.includes('embedding') || m.includes('indexed') || m.includes('hnsw') || m.includes('chunk')) return 3;
+    if (m.includes('.rvf') || m.includes('done')) return 4;
+    if (m.includes('seed') || m.includes('push') || m.includes('sync') || m.includes('10.0.0')) return 5;
+    return -1;
+  };
 
   useEffect(()=>{ const c=async()=>{ try{const r=await fetch(`${API}/api/health`,{signal:AbortSignal.timeout(1800)});setLive(r.ok);}catch{setLive(false);} }; c(); const id=setInterval(c,5000); return()=>clearInterval(id); },[]);
   useEffect(()=>{
@@ -533,7 +650,10 @@ const Dashboard = () => {
   useEffect(()=>{ if(inLogR.current) inLogR.current.scrollTop=inLogR.current.scrollHeight; },[inLog]);
 
   const selData = topics.find(t=>t.slug===sel);
-  const addInLog=(msg,type='info')=>setInLog(p=>[...p,{msg,type,id:Date.now()+Math.random()}]);
+  const addInLog=(msg,type='info')=>{
+    setInLog(p=>[...p,{msg,type,id:Date.now()+Math.random()}]);
+    const s=stageFromMsg(msg); if(s>=0) setInStage(s);
+  };
 
   const handleAsk=async()=>{
     if(!input.trim()||asking)return;
@@ -553,7 +673,7 @@ const Dashboard = () => {
 
   const handleIngest=()=>{
     if(!inUrl.trim()||ingst)return;
-    setIngst(true);setInLog([]);setInPct(0);
+    setIngst(true);setInLog([]);setInPct(0);setInStage(0);
     try {
       const qs=new URLSearchParams({source:inUrl,topic:inTopic}).toString();
       const es=new EventSource(`${API}/api/ingest/progress?${qs}`);
@@ -562,8 +682,31 @@ const Dashboard = () => {
     } catch { simIngest(); }
   };
   const simIngest=()=>{
-    const steps=[[250,'Resolving source…','info'],[750,'Fetching metadata','info'],[1300,'Downloading transcript…','active'],[2100,'1,204 segments · 18,600 words','success'],[2500,'Analysing frame variance…','active'],[3200,'Extracting 58 keyframes','info'],[4000,'Captioning (Sonnet vision)…','active'],[5600,'58 / 58 frames captioned','success'],[6000,'124 chunks @ 300 tokens','info'],[6800,'Embedding (all-MiniLM-L6-v2)…','active'],[7600,'Indexed 124 vectors → HNSW','success'],[8000,'Wrote .rvf to ~/Docs/KB/','success'],[8400,'Done · 124 chunks · 58 frames · 3.2 MB','success']];
-    steps.forEach(([ms,msg,type],i)=>setTimeout(()=>{ addInLog(msg,type); setInPct(Math.round(i/(steps.length-1)*100)); if(i===steps.length-1)setIngst(false); },ms));
+    const seedIp = seed.connected ? seed.ip : null;
+    const seedSteps = seedIp ? [
+      [8700, `Pushing to Cognitum Seed ${seedIp}…`, 'active'],
+      [9400, 'Transferring .rvf (3.2 MB)…', 'active'],
+      [10200, `Seed indexed: 124 chunks · 58 frames`, 'success'],
+      [10500, `Synced to Seed ${seedIp}`, 'success'],
+    ] : [
+      [8700, 'Seed not configured — skipping push', 'warn'],
+    ];
+    const base=[
+      [250,'Resolving source…','info'],[750,'Fetching metadata','info'],
+      [1300,'Downloading transcript…','active'],[2100,'1,204 segments · 18,600 words','success'],
+      [2500,'Analysing frame variance…','active'],[3200,'Extracting 58 keyframes','info'],
+      [4000,'Captioning (Sonnet vision)…','active'],[5600,'58 / 58 frames captioned','success'],
+      [6000,'124 chunks @ 300 tokens','info'],[6800,'Embedding (all-MiniLM-L6-v2)…','active'],
+      [7600,'Indexed 124 vectors → HNSW','success'],[8000,'Wrote .rvf to ~/Docs/KB/','success'],
+      [8200,'Done · 124 chunks · 58 frames · 3.2 MB','success'],
+    ];
+    const steps = [...base, ...seedSteps];
+    const last = steps[steps.length-1][0];
+    steps.forEach(([ms,msg,type],i)=>setTimeout(()=>{
+      addInLog(msg,type);
+      setInPct(Math.min(100,Math.round((ms/last)*100)));
+      if(i===steps.length-1){ setIngst(false); setInStage(seedIp?5:4); }
+    },ms));
   };
 
   const totalMb    = topics.reduce((s,t)=>s+(t.size_kb||0),0)/1024;
@@ -637,9 +780,21 @@ const Dashboard = () => {
           <span className="mono" style={{fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--t3)'}}>Ingest</span>
           <div><label className="mono" style={{fontSize:9,color:'var(--t3)',letterSpacing:'.06em',display:'block',marginBottom:6,textTransform:'uppercase'}}>Source URL</label><input className="field mono" style={{borderRadius:8,padding:'9px 12px',fontSize:11}} placeholder="https://youtube.com/…" value={inUrl} onChange={e=>setInUrl(e.target.value)}/></div>
           <div><label className="mono" style={{fontSize:9,color:'var(--t3)',letterSpacing:'.06em',display:'block',marginBottom:6,textTransform:'uppercase'}}>Topic (optional)</label><input className="field mono" style={{borderRadius:8,padding:'9px 12px',fontSize:11}} placeholder="my-topic-slug" value={inTopic} onChange={e=>setInT(e.target.value)}/></div>
-          {(ingst||inPct>0)&&<div><div style={{display:'flex',justifyContent:'space-between',marginBottom:5,fontSize:11,color:'var(--t3)'}}><span>Progress</span><span className="mono">{inPct}%</span></div><div style={{height:4,borderRadius:4,background:'var(--void)',overflow:'hidden'}}><div className={ingst?'bar-sh':''} style={{height:'100%',width:`${inPct}%`,borderRadius:4,transition:'width .4s ease',background:!ingst&&inPct>0?'var(--grn)':undefined}}/></div></div>}
           <button onClick={handleIngest} disabled={!inUrl.trim()||ingst} className="btn btn-p" style={{borderRadius:9,padding:'10px',fontSize:13,gap:8,opacity:(!inUrl.trim()||ingst)?.45:1}}>{ingst?<><Ico n="ld" s={14} cls="spin"/>Processing…</>:<><Ico n="upl" s={14}/>Start ingest</>}</button>
-          {inLog.length>0&&<div><div className="mono" style={{fontSize:9,letterSpacing:'.06em',color:'var(--t3)',marginBottom:7,textTransform:'uppercase'}}>Log</div><div className="term glass" style={{borderRadius:9,padding:'10px 12px',maxHeight:220,overflow:'hidden'}}><div ref={inLogR} style={{maxHeight:200,overflowY:'auto'}}>{inLog.map(e=><div key={e.id} className={`log-l ${lcls[e.type]||'li'}`}><span style={{color:'var(--t3)',marginRight:6}}>›</span>{e.msg}</div>)}{ingst&&<div className="log-l la tcur" style={{opacity:.6}}/>}</div></div></div>}
+
+          {/* Visual pipeline — shown when ingest is running or complete */}
+          {inStage>=0&&<IngestPipeline stage={inStage} pct={inPct} seedIp={seed.ip} running={ingst}/>}
+
+          {/* Compact log */}
+          {inLog.length>0&&<div>
+            <div className="mono" style={{fontSize:9,letterSpacing:'.06em',color:'var(--t3)',marginBottom:6,textTransform:'uppercase'}}>Log</div>
+            <div className="term glass" style={{borderRadius:9,padding:'8px 12px',maxHeight:160,overflow:'hidden'}}>
+              <div ref={inLogR} style={{maxHeight:150,overflowY:'auto'}}>
+                {inLog.map(e=><div key={e.id} className={`log-l ${lcls[e.type]||'li'}`}><span style={{color:'var(--t3)',marginRight:6}}>›</span>{e.msg}</div>)}
+                {ingst&&<div className="log-l la tcur" style={{opacity:.6}}/>}
+              </div>
+            </div>
+          </div>}
           <div style={{height:1,background:'var(--bd)',margin:'2px 0'}}/>
           <span className="mono" style={{fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--t3)'}}>Commands</span>
           {[{cmd:'learn list',desc:'Browse all topics'},{cmd:'learn ask <topic> "…"',desc:'Query from the CLI'},{cmd:'learn quiz <topic>',desc:'Spaced-repetition flashcards'},{cmd:'learn push <topic>',desc:'Sync to Cognitum Seed'},{cmd:'learn doctor',desc:'Check environment & deps'},{cmd:'learn ui',desc:'Start this dashboard'}].map(a=>(

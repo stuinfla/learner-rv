@@ -263,7 +263,11 @@ async fn ingest_progress(
         }
 
         match child.wait().await {
-            Ok(s) if s.success() => send("Ingest complete.", "success", 100, true),
+            Ok(s) if s.success() => {
+                send("Ingest complete.", "success", 97, false);
+                // Stream the Seed push if configured
+                stream_seed_push(&send, &topic, &kb_root).await;
+            }
             Ok(_)  => send("Finished with errors — check `learn doctor`.", "warn", 100, true),
             Err(e) => send(&format!("Process error: {e}"), "warn", 100, true),
         }
@@ -271,4 +275,56 @@ async fn ingest_progress(
 
     let stream = ReceiverStream::new(rx).map(|data| Ok(Event::default().data(data)));
     Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(15)).text("ping"))
+}
+
+/// If a Seed is configured, push the topic to it and stream progress events.
+async fn stream_seed_push(
+    send: &impl Fn(&str, &str, u8, bool),
+    topic: &str,
+    kb_root: &str,
+) {
+    let seed_addr: Option<String> = std::env::var("LEARN_SEED_ADDRESS").ok().or_else(|| {
+        let path = dirs::config_dir()
+            .unwrap_or_default()
+            .join("learn-rs/config.json");
+        std::fs::read_to_string(path)
+            .ok()
+            .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+            .and_then(|v| v["seed"]["address"].as_str().map(str::to_string))
+            .filter(|s| !s.is_empty())
+    });
+
+    let Some(addr) = seed_addr else {
+        send("Seed not configured — skipping push", "warn", 100, true);
+        return;
+    };
+
+    // Derive the topic slug if not explicitly provided
+    let topic_arg = if topic.is_empty() {
+        // Without a slug we cannot push — auto_push in the CLI handles this case
+        send(&format!("Stored locally · push with: learn push <topic> --seed {addr}"), "info", 100, true);
+        return;
+    } else {
+        topic.to_string()
+    };
+
+    send(&format!("Pushing to Cognitum Seed {addr}…"), "active", 98, false);
+
+    let result = tokio::process::Command::new("learn")
+        .args(["push", &topic_arg, "--seed", &addr, "--kb-root", kb_root])
+        .output()
+        .await;
+
+    match result {
+        Ok(o) if o.status.success() => {
+            send(&format!("Synced to Seed {addr}"), "success", 100, true);
+        }
+        Ok(o) => {
+            let err = String::from_utf8_lossy(&o.stderr);
+            send(&format!("Push failed: {}", err.lines().next().unwrap_or("unknown error")), "warn", 100, true);
+        }
+        Err(e) => {
+            send(&format!("Push error: {e}"), "warn", 100, true);
+        }
+    }
 }
