@@ -779,16 +779,16 @@ mod tests {
         // Canonical list — one entry per Cmd variant.  Update this list when
         // adding or removing a subcommand; the test will fail if the count
         // in print_orientation() is left behind.
-        const CMD_VARIANT_COUNT: usize = 24; // Ingest Import Ask Apply Study WhoSaid
+        const CMD_VARIANT_COUNT: usize = 25; // Ingest Import Ask Apply Study WhoSaid
                                              // Timeline Compare Summarize List Status
-                                             // Watch Eval Forget Compact Doctor Chat Serve Cloud Map Push Quiz Config Setup
+                                             // Watch Eval Forget Compact Doctor Chat Serve Cloud Map Push Quiz Config Ui Setup
                                              // Capture the orientation text and parse out the "▶ All N commands" figure.
         let orientation = format!("{CMD_VARIANT_COUNT}");
         // The orientation block in print_orientation() hard-codes the same integer.
         // We match against the same source-of-truth constant so the test is
         // self-consistent — any mismatch between the two constants is a bug.
         assert_eq!(
-            CMD_VARIANT_COUNT, 24,
+            CMD_VARIANT_COUNT, 25,
             "Update CMD_VARIANT_COUNT and '▶ All N commands' in print_orientation() together"
         );
 
