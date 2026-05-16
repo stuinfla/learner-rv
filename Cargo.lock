@@ -2129,6 +2129,7 @@ dependencies = [
  "learn-index",
  "learn-retrieve",
  "learn-synth",
+ "mdns-sd",
  "serde",
  "serde_json",
  "tempfile",

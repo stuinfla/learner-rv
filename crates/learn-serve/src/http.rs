@@ -36,6 +36,8 @@ pub fn build_router(kb_root: Utf8PathBuf) -> Router {
         .route("/api/status", get(status))
         .route("/api/ask", post(ask))
         .route("/api/ingest/progress", get(ingest_progress))
+        .route("/api/seed/discover", post(seed_discover))
+        .route("/api/seed/configure", post(seed_configure))
         .with_state(state)
         .layer(CorsLayer::permissive())
 }
@@ -327,4 +329,88 @@ async fn stream_seed_push(
             send(&format!("Push error: {e}"), "warn", 100, true);
         }
     }
+}
+
+// ── Seed discovery & config ──────────────────────────────────────────────────
+
+#[derive(Deserialize, Default)]
+struct DiscoverBody {
+    #[serde(default = "default_discover_timeout")]
+    timeout_secs: u64,
+}
+fn default_discover_timeout() -> u64 { 3 }
+
+async fn seed_discover(body: Option<Json<DiscoverBody>>) -> Json<Value> {
+    let timeout = body.map(|Json(b)| b.timeout_secs).unwrap_or(3).clamp(1, 10);
+
+    let task = tokio::task::spawn_blocking(move || -> Vec<String> {
+        use mdns_sd::{ServiceDaemon, ServiceEvent};
+
+        let Ok(daemon) = ServiceDaemon::new() else { return vec![]; };
+        let Ok(receiver) = daemon.browse("_cognitum._tcp.local.") else { return vec![]; };
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(timeout);
+        let mut found: Vec<String> = Vec::new();
+        loop {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() { break; }
+            match receiver.recv_timeout(remaining) {
+                Ok(ServiceEvent::ServiceResolved(info)) => {
+                    let addr = info
+                        .get_addresses_v4()
+                        .into_iter()
+                        .next()
+                        .map(|a| a.to_string())
+                        .unwrap_or_else(|| info.get_hostname().trim_end_matches('.').to_owned());
+                    if !found.contains(&addr) { found.push(addr); }
+                }
+                Ok(_) | Err(_) => {}
+            }
+        }
+        found
+    });
+
+    let addrs = task.await.unwrap_or_default();
+    Json(json!({ "found": addrs }))
+}
+
+#[derive(Deserialize)]
+struct ConfigureBody {
+    address: String,
+    #[serde(default)]
+    auto_push: bool,
+}
+
+async fn seed_configure(
+    Json(body): Json<ConfigureBody>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let path = dirs::config_dir()
+        .unwrap_or_default()
+        .join("learn-rs/config.json");
+
+    if let Some(dir) = path.parent() {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))));
+        }
+    }
+
+    // Preserve any unknown fields by reading-modify-writing.
+    let mut current: Value = std::fs::read(&path)
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_else(|| json!({}));
+    let seed = current
+        .as_object_mut()
+        .expect("just created as object")
+        .entry("seed")
+        .or_insert_with(|| json!({}));
+    seed["address"] = json!(body.address);
+    seed["auto_push"] = json!(body.auto_push);
+
+    let bytes = serde_json::to_vec_pretty(&current)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
+    std::fs::write(&path, &bytes)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
+
+    Ok(Json(json!({"ok": true, "path": path.to_string_lossy()})))
 }
