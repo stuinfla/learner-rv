@@ -30,6 +30,10 @@ ruvector.db
 *.sqlite
 *.sqlite3
 
+# Loose AgentDB sidecar files spawned in repo root by subprocess agentdb consumers
+/agentdb.rvf
+/agentdb.rvf.lock
+
 # Environment — .env.example is safe to commit (no real secrets)
 .env
 .env.local
