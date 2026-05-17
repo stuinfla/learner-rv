@@ -249,6 +249,10 @@ struct IngestQuery {
     source: String,
     #[serde(default)]
     topic: String,
+    /// How many videos to pull from a channel/playlist/search. Defaults to 20
+    /// (the wizard's "build me an expert" depth — gives ~10-20 hours of content).
+    #[serde(default)]
+    limit: Option<usize>,
 }
 
 async fn ingest_progress(
@@ -267,9 +271,14 @@ async fn ingest_progress(
             );
         };
 
-        send("Starting ingest pipeline…", "info", 2, false);
+        let limit = q.limit.unwrap_or(20);
+        let limit_str = limit.to_string();
+        send(
+            &format!("Starting ingest pipeline (target: {limit} videos)…"),
+            "info", 2, false,
+        );
 
-        let mut args = vec!["ingest", source.as_str(), "--kb-root", kb_root.as_str()];
+        let mut args = vec!["ingest", source.as_str(), "--kb-root", kb_root.as_str(), "--limit", limit_str.as_str()];
         if !topic.is_empty() {
             args.extend(["--topic", topic.as_str()]);
         }
