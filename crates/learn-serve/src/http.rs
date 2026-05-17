@@ -271,66 +271,118 @@ async fn ingest_progress(
             );
         };
 
-        let limit = q.limit.unwrap_or(20);
-        let limit_str = limit.to_string();
-        send(
-            &format!("Starting ingest pipeline (target: {limit} videos)…"),
-            "info", 2, false,
-        );
+        // Source may be a comma-separated list of channel/playlist URLs.
+        // Each gets ingested sequentially with a per-source limit so that the
+        // total volume across N sources stays in the 15–25 video range.
+        let sources: Vec<String> = source
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        let n = sources.len().max(1);
+        // Total target ~20 videos. Per-source = ceil(20 / n).
+        let total_target = q.limit.unwrap_or(20);
+        let per_source = ((total_target as f32) / (n as f32)).ceil() as usize;
+        let per_source = per_source.max(3); // don't go below 3 per source
+        let per_source_str = per_source.to_string();
 
-        let mut args = vec!["ingest", source.as_str(), "--kb-root", kb_root.as_str(), "--limit", limit_str.as_str()];
-        if !topic.is_empty() {
-            args.extend(["--topic", topic.as_str()]);
+        if n > 1 {
+            send(
+                &format!(
+                    "Building expert from {n} sources · ~{per_source} videos each ({} total)…",
+                    per_source * n
+                ),
+                "info", 2, false,
+            );
+        } else {
+            send(
+                &format!("Starting ingest pipeline (target: {per_source} videos)…"),
+                "info", 2, false,
+            );
         }
 
-        let mut child = match tokio::process::Command::new("learn")
-            .args(&args)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::piped())
-            .spawn()
-        {
-            Ok(c) => c,
-            Err(e) => {
-                send(&format!("Failed to start: {e}"), "warn", 0, true);
-                return;
-            }
-        };
+        let mut overall_pct = 5u8;
+        let mut any_succeeded = false;
+        let chunk_pct = if n > 1 { (90 / n) as u8 } else { 90 };
 
-        if let Some(stderr) = child.stderr.take() {
-            use tokio::io::{AsyncBufReadExt, BufReader};
-            let mut lines = BufReader::new(stderr).lines();
-            let mut pct = 5u8;
-            while let Ok(Some(line)) = lines.next_line().await {
-                let level = if line.contains("error") || line.contains("Error") {
-                    "warn"
-                } else if line.contains("Done") || line.contains("indexed") {
-                    "success"
-                } else if line.contains("…")
-                    || line.contains("Embedding")
-                    || line.contains("Captioning")
-                {
-                    "active"
-                } else {
-                    "info"
-                };
-                pct = (pct + 7).min(95);
-                send(&line, level, pct, false);
+        for (idx, src) in sources.iter().enumerate() {
+            if n > 1 {
+                send(
+                    &format!("─ source {}/{n} · {} ─", idx + 1, src),
+                    "info", overall_pct, false,
+                );
             }
+
+            let mut args = vec![
+                "ingest", src.as_str(), "--kb-root", kb_root.as_str(),
+                "--limit", per_source_str.as_str(),
+            ];
+            if !topic.is_empty() {
+                args.extend(["--topic", topic.as_str()]);
+            }
+
+            let mut child = match tokio::process::Command::new("learn")
+                .args(&args)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::piped())
+                .spawn()
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    send(&format!("Source {}: failed to start — {e}", idx + 1), "warn", overall_pct, false);
+                    continue;
+                }
+            };
+
+            let start_pct = overall_pct;
+            if let Some(stderr) = child.stderr.take() {
+                use tokio::io::{AsyncBufReadExt, BufReader};
+                let mut lines = BufReader::new(stderr).lines();
+                while let Ok(Some(line)) = lines.next_line().await {
+                    let level = if line.contains("error") || line.contains("Error") {
+                        "warn"
+                    } else if line.contains("Done") || line.contains("indexed") {
+                        "success"
+                    } else if line.contains("…")
+                        || line.contains("Embedding")
+                        || line.contains("Captioning")
+                    {
+                        "active"
+                    } else {
+                        "info"
+                    };
+                    overall_pct = (overall_pct + 2).min(start_pct + chunk_pct).min(95);
+                    send(&line, level, overall_pct, false);
+                }
+            }
+
+            match child.wait().await {
+                Ok(s) if s.success() => {
+                    any_succeeded = true;
+                    if n > 1 {
+                        send(
+                            &format!("✓ source {}/{n} done.", idx + 1),
+                            "success", overall_pct, false,
+                        );
+                    }
+                }
+                Ok(_) => send(
+                    &format!("Source {}: finished with errors — continuing.", idx + 1),
+                    "warn", overall_pct, false,
+                ),
+                Err(e) => send(&format!("Source {}: process error — {e}", idx + 1), "warn", overall_pct, false),
+            }
+            overall_pct = (start_pct + chunk_pct).min(95);
         }
 
-        match child.wait().await {
-            Ok(s) if s.success() => {
-                send("Ingest complete.", "success", 97, false);
-                // Stream the Seed push if configured
-                stream_seed_push(&send, &topic, &kb_root).await;
-            }
-            Ok(_) => send(
-                "Finished with errors — check `learn doctor`.",
-                "warn",
-                100,
-                true,
-            ),
-            Err(e) => send(&format!("Process error: {e}"), "warn", 100, true),
+        if any_succeeded {
+            send("Ingest complete.", "success", 97, false);
+            stream_seed_push(&send, &topic, &kb_root).await;
+        } else {
+            send(
+                "All sources failed — check `learn doctor`.",
+                "warn", 100, true,
+            );
         }
     });
 
