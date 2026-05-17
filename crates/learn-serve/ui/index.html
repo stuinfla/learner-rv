@@ -331,7 +331,7 @@
               </div>
               <div className="lg:col-span-5 order-1 lg:order-2">
                 <div className="relative aspect-[3/2] rounded-md overflow-hidden border border-amber-500/20">
-                  <img src={`${CDN}/knowledge-absorbed.png`} alt="Streams of video frames, audio waveforms, and book pages cascading into a small Cognitum Seed device — knowledge being absorbed and stored as vectors."
+                  <img src={`${CDN}/distillation.png`} alt="Abstract cascade of video frames, audio waveforms, and book pages flowing down and distilling into glowing vector grid patterns."
                     className="w-full h-full object-cover" />
                 </div>
                 <div className="mt-3 mono text-[10px] uppercase tracking-widest text-slate-500 text-center leading-relaxed">
@@ -342,7 +342,7 @@
           </section>
 
           {/* SECTION 3 — the plan */}
-          <section className="mb-12 border-t border-slate-800 pt-16">
+          <section className="mb-20 border-t border-slate-800 pt-16">
             <div className="mono text-[11px] uppercase tracking-widest text-amber-300 mb-3 flex items-center gap-2">
               <span className="inline-block w-4 h-px bg-amber-300" />
               THIRD · WHAT WE'RE GOING TO DO TOGETHER
@@ -350,27 +350,100 @@
             <h2 className="display text-[34px] sm:text-[44px] leading-[1.1] text-slate-50 mb-3">
               About <em className="text-amber-300 italic">fifteen minutes</em>, four small steps.
             </h2>
-            <p className="text-slate-400 text-[15px] mb-10 max-w-2xl">
+            <p className="text-slate-400 text-[15px] mb-8 max-w-2xl">
               Nothing destructive can happen. If you mess something up, just close the tab and start over.
             </p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
+            <FlowDiagram />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
               <PlanStep n="1" title="Find your Seed">We scan the network and locate the little box on your desk. ~10 seconds.</PlanStep>
               <PlanStep n="2" title="Pick a topic">You tell us what you want to become an expert at. We've got starters if you're not sure.</PlanStep>
               <PlanStep n="3" title="Let it watch">Your Seed pulls down the right YouTube videos, watches every minute, and stores it as vectors. ~10 minutes.</PlanStep>
               <PlanStep n="4" title="Ask away">When it's done, you ask anything and it cites the exact video + timestamp.</PlanStep>
             </div>
+          </section>
 
-            <div className="border-t border-slate-800 pt-10">
-              <button onClick={onContinue}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-5 bg-amber-300 text-slate-950 font-semibold text-[17px] hover:bg-amber-200 transition rounded">
-                Start the tour <span aria-hidden>→</span>
-              </button>
-              <p className="mt-4 mono text-[10px] uppercase tracking-widest text-slate-500">
-                stays local · uses about as much internet as a Netflix night
-              </p>
+          {/* SECTION 4 — END STATE preview */}
+          <section className="mb-12 border-t border-slate-800 pt-16">
+            <div className="mono text-[11px] uppercase tracking-widest text-emerald-300 mb-3 flex items-center gap-2">
+              <span className="inline-block w-4 h-px bg-emerald-300" />
+              AND THEN · WHAT YOU'LL HAVE
             </div>
+            <h2 className="display text-[34px] sm:text-[44px] leading-[1.1] text-slate-50 mb-6">
+              A finished expert that <em className="text-amber-300 italic">cites every source</em>.
+            </h2>
+            <p className="text-slate-400 text-[15px] mb-8 max-w-2xl">
+              Here's what your screen will look like when you're done. A real question, a synthesized answer, every claim backed by a video timestamp you can click through and verify.
+            </p>
+            <div className="border border-slate-800 bg-slate-900/40 rounded p-5 sm:p-6">
+              <div className="mono text-[10px] uppercase tracking-widest text-slate-500 mb-1">YOU</div>
+              <div className="text-slate-100 mb-4">If I have $400k in a 401k at 45 and want to retire at 60, what does the math actually say I need to save monthly?</div>
+              <div className="mono text-[10px] uppercase tracking-widest text-amber-300 mb-2">MY SEED</div>
+              <div className="answer">
+                <p>Based on the three fee-only advisor channels you indexed, the consensus math points to roughly <strong>$2,800–$3,400 per month</strong> in additional savings, assuming a 7% real return and a 4% safe withdrawal rate in retirement.</p>
+                <h3>Why that range, not a single number</h3>
+                <ul>
+                  <li>The lower end ($2,800) assumes you keep your current 401k contributions AND your spending stays flat (Berger).</li>
+                  <li>The upper end ($3,400) is what The Money Guys recommend if you want a buffer for sequence-of-returns risk in the first five years of retirement.</li>
+                  <li>If you have any pension or expected Social Security, both shows would tell you to subtract its present-value from the target.</li>
+                </ul>
+                <h3>The math, briefly</h3>
+                <p>At 45 with $400k growing at 7% real for 15 years, you arrive at <code>~$1.1M</code> without contributing another dollar. At a 4% safe withdrawal, that supports about <code>$44k/year</code> in retirement spending. If your number is higher, the gap is what you save monthly.</p>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-800">
+                <div className="mono text-[10px] uppercase tracking-widest text-emerald-300 mb-2">
+                  ✦ cited from 3 sources
+                </div>
+                <ul className="space-y-1.5 text-sm text-slate-400">
+                  <li className="flex items-start gap-2"><span className="text-emerald-300 mt-0.5">·</span>Rob Berger · "Sequence of Returns Risk Explained" @ 14:32</li>
+                  <li className="flex items-start gap-2"><span className="text-emerald-300 mt-0.5">·</span>The Money Guy Show · "The Wealth Multiplier" @ 02:08</li>
+                  <li className="flex items-start gap-2"><span className="text-emerald-300 mt-0.5">·</span>Ramsey Show · "The 4% Rule" @ 11:47</li>
+                </ul>
+              </div>
+            </div>
+            <p className="mt-3 mono text-[10px] uppercase tracking-widest text-slate-500 text-center">
+              a preview · your actual answers come from videos YOU pick on topics YOU care about
+            </p>
+          </section>
+
+          {/* CTA */}
+          <section className="border-t border-slate-800 pt-12">
+            <button onClick={onContinue}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-5 bg-amber-300 text-slate-950 font-semibold text-[17px] hover:bg-amber-200 transition rounded">
+              Start the tour <span aria-hidden>→</span>
+            </button>
+            <p className="mt-4 mono text-[10px] uppercase tracking-widest text-slate-500">
+              stays local · uses about as much internet as a Netflix night
+            </p>
           </section>
         </div>
+      );
+    }
+
+    function FlowDiagram() {
+      const steps = [
+        { icon: "📡", label: "scan" },
+        { icon: "🎯", label: "pick" },
+        { icon: "🎬", label: "watch" },
+        { icon: "💬", label: "ask" },
+      ];
+      return (
+        <svg viewBox="0 0 800 100" className="w-full max-w-[700px] mx-auto" aria-hidden>
+          {steps.map((s, i) => (
+            <g key={s.label} transform={`translate(${100 + i * 180} 50)`}>
+              <circle cx="0" cy="0" r="28" fill="#0b1220" stroke="#fcd34d" strokeWidth="1.2" />
+              <text x="0" y="6" textAnchor="middle" fontSize="22">{s.icon}</text>
+              <text x="0" y="56" textAnchor="middle" fill="#94a3b8" fontFamily="ui-monospace" fontSize="10" letterSpacing="2">{s.label.toUpperCase()}</text>
+              <circle cx="-18" cy="-18" r="9" fill="#fcd34d" />
+              <text x="-18" y="-14" textAnchor="middle" fill="#0b1220" fontSize="11" fontWeight="700">{i + 1}</text>
+            </g>
+          ))}
+          {[0, 1, 2].map(i => (
+            <g key={i} stroke="#475569" strokeWidth="1" strokeDasharray="3 3" fill="none">
+              <line x1={140 + i * 180} y1="50" x2={222 + i * 180} y2="50" />
+              <polygon points={`${222 + i * 180},45 ${232 + i * 180},50 ${222 + i * 180},55`} fill="#475569" stroke="none" />
+            </g>
+          ))}
+        </svg>
       );
     }
 
