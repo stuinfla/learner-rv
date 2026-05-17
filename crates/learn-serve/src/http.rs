@@ -39,7 +39,29 @@ pub fn build_router(kb_root: Utf8PathBuf) -> Router {
         .route("/api/seed/discover", post(seed_discover))
         .route("/api/seed/configure", post(seed_configure))
         .with_state(state)
+        // CorsLayer goes INNERMOST so its preflight short-circuit fires.
+        // PNA middleware goes OUTERMOST so it stamps every response —
+        // including the CORS preflight — with
+        // Access-Control-Allow-Private-Network: true. This is required for
+        // Chrome 122+ Private Network Access: HTTPS pages (Vercel) cannot
+        // fetch from this localhost bridge without it.
         .layer(CorsLayer::permissive())
+        .layer(axum::middleware::from_fn(add_private_network_header))
+}
+
+/// Adds `Access-Control-Allow-Private-Network: true` to every response.
+/// Required for HTTPS pages (Vercel-hosted) to fetch from this localhost
+/// bridge under Chrome's Private Network Access spec.
+async fn add_private_network_header(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let mut res = next.run(req).await;
+    res.headers_mut().insert(
+        "access-control-allow-private-network",
+        "true".parse().unwrap(),
+    );
+    res
 }
 
 /// Start the HTTP server. Blocks until the process is killed.

@@ -1,825 +1,818 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Learn-RV · Knowledge Base</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>learn-rv · your Seed becomes an expert</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,30..100;1,9..144,400..700,30..100&family=Geist:wght@300..700&family=JetBrains+Mono:wght@400..600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     :root {
-      --void:#02060F; --deep:#060D1A; --surf:#0C1828; --card:#101F34; --elev:#182840;
-      --blu:#3B82F6; --cyn:#06B6D4; --grn:#10B981; --amb:#F59E0B; --red:#EF4444; --vio:#8B5CF6;
-      --bd:rgba(59,130,246,.14); --bdm:rgba(59,130,246,.28); --bdh:rgba(59,130,246,.55);
-      --t1:#F0F6FF; --t2:#7BA5CF; --t3:#3D5875;
+      --bg: #020617; --bg2: #0b1220; --ink: #e2e8f0; --ink-dim: #64748b;
+      --hairline: #1e293b; --amber: #fcd34d; --emerald: #6ee7b7;
     }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    html,body,#root{height:100%;font-family:'Outfit',sans-serif;background:var(--void);color:var(--t1);overflow:hidden;}
-    .mono{font-family:'IBM Plex Mono',monospace;}
-    #bg{position:fixed;inset:0;pointer-events:none;z-index:0;
-      background:radial-gradient(ellipse 80% 50% at 15% 20%,rgba(59,130,246,.08) 0%,transparent 60%),
-                 radial-gradient(ellipse 60% 45% at 85% 75%,rgba(6,182,212,.06) 0%,transparent 60%),
-                 radial-gradient(ellipse 50% 60% at 50% 50%,rgba(139,92,246,.03) 0%,transparent 70%);}
-    @keyframes drift{0%,100%{transform:scale(1) translate(0,0);}50%{transform:scale(1.06) translate(1%,-1%);}}
-    #bg{animation:drift 22s ease-in-out infinite;}
-    body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;}
-    .glass{background:rgba(12,24,40,.80);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--bd);}
-    ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:var(--bdm);border-radius:2px;}
-    .field{background:rgba(2,6,15,.75);border:1px solid var(--bdm);color:var(--t1);font-family:'Outfit',sans-serif;width:100%;outline:none;transition:border-color .18s,box-shadow .18s;}
-    .field:focus{border-color:var(--blu);box-shadow:0 0 0 2px rgba(59,130,246,.14);}
-    .field::placeholder{color:var(--t3);}
-    .btn{display:inline-flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:500;cursor:pointer;border:none;transition:all .18s;}
-    .btn-p{background:linear-gradient(135deg,#1D4ED8,#0E7490);color:#fff;}
-    .btn-p:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 28px rgba(59,130,246,.38);}
-    .btn-p:disabled{opacity:.4;cursor:not-allowed;}
-    .btn-g{background:transparent;color:var(--t2);border:1px solid var(--bd);}
-    .btn-g:hover{color:var(--t1);border-color:var(--bdm);}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-    @keyframes scanln{0%{transform:translateY(-100%)}100%{transform:translateY(500%)}}
-    @keyframes skp{0%,100%{opacity:.35}50%{opacity:.7}}
-    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-    @keyframes pulse-g{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}60%{box-shadow:0 0 0 5px rgba(16,185,129,0)}}
-    .fade-up{animation:fadeUp .45s ease both;} .fade-in{animation:fadeIn .3s ease both;}
-    .spin{animation:spin .8s linear infinite;} .float{animation:float 5s ease-in-out infinite;}
-    .bar-sh{background:linear-gradient(90deg,var(--blu) 25%,var(--cyn) 50%,var(--blu) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;}
-    .dot{display:inline-block;border-radius:50%;}
-    .dg{background:var(--grn);box-shadow:0 0 5px var(--grn);animation:pulse-g 2.5s ease infinite;}
-    .da{background:var(--amb);} .dr{background:var(--red);} .db{background:var(--blu);}
-    .tcard{position:relative;overflow:hidden;cursor:pointer;transition:all .2s;}
-    .tcard::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--blu),var(--cyn));border-radius:2px;transform:scaleY(0);transform-origin:bottom;transition:transform .22s;}
-    .tcard:hover::before,.tcard.active::before{transform:scaleY(1);}
-    .tcard.active{border-color:var(--bdh)!important;background:rgba(21,37,64,.88)!important;}
-    .bu-u{background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(6,182,212,.1));border:1px solid rgba(59,130,246,.25);border-radius:16px 16px 4px 16px;}
-    .bu-a{background:var(--card);border:1px solid var(--bd);border-radius:16px 16px 16px 4px;}
-    .cite{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--blu);transition:all .15s;}
-    .cite:hover{background:rgba(59,130,246,.2);border-color:var(--blu);}
-    .log-l{font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.75;animation:fadeUp .25s ease both;}
-    .li{color:var(--t2);} .ls{color:var(--grn);} .la{color:var(--cyn);} .lw{color:var(--amb);}
-    .term{position:relative;overflow:hidden;}
-    .term::after{content:'';position:absolute;left:0;right:0;height:36px;background:linear-gradient(transparent,rgba(6,182,212,.025),transparent);animation:scanln 3.5s linear infinite;pointer-events:none;}
-    .sk{background:var(--elev);border-radius:4px;animation:skp 1.5s ease infinite;}
-    .sdot{width:7px;height:7px;border-radius:50%;background:var(--bdm);transition:all .3s;}
-    .sdot.on{background:var(--blu);box-shadow:0 0 8px rgba(59,130,246,.65);width:20px;border-radius:4px;}
-    .sdot.done{background:var(--cyn);}
-    .tcur::after{content:'|';animation:blink 1s ease infinite;color:var(--blu);}
-    .grad-text{background:linear-gradient(135deg,#60A5FA,#22D3EE);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { min-height: 100%; background: var(--bg); color: var(--ink); }
+    body { font-family: 'Geist', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+    .display { font-family: 'Fraunces', Georgia, serif; font-feature-settings: "ss01"; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .cream { color: #f5f1e8; }
+    ::selection { background: rgba(252, 211, 77, 0.25); color: #fff; }
+
+    /* hairline grid backdrop */
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(30,41,59,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30,41,59,0.08) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
+    @keyframes ping {
+      75%,100% { transform: scale(2); opacity: 0; }
+    }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: none; }
+    }
+    .fade-in { animation: fade-in 0.4s ease both; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
   </style>
 </head>
 <body>
-<div id="bg"></div>
-<div id="root" style="position:relative;z-index:1;height:100%;"></div>
-<script type="text/babel">
-const { useState, useEffect, useRef } = React;
-const API = 'http://localhost:7878';
+  <div id="root"></div>
 
-// Path strings stored separately to avoid Babel JSX line-length issues
-const ICO_D = {
-  play:  [['poly','5 3 19 12 5 21 5 3']],
-  send:  [['p','M22 2L11 13'],['p','M22 2L15 22 11 13 2 9 22 2']],
-  plus:  [['p','M12 5v14'],['p','M5 12h14']],
-  cpu:   [['r4','4,4,16,16'],['r2','9,9,6,6'],['p','M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3']],
-  video: [['poly','23 7 16 12 23 17 23 7'],['r1','1,5,15,14']],
-  db:    [['e','12,5,9,3'],['p','M21 12c0 1.66-4 3-9 3s-9-1.34-9-3'],['p','M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5']],
-  srch:  [['c','11,11,8'],['p','M21 21l-4.35-4.35']],
-  chk:   [['p','M20 6L9 17l-5-5']],
-  lnk:   [['p','M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'],
-          ['p','M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71']],
-  fld:   [['p','M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z']],
-  msg:   [['p','M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z']],
-  upl:   [['p','M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'],['p','M17 8l-5-5-5 5'],['p','M12 3v12']],
-  star:  [['poly','12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2']],
-  bolt:  [['p','M13 2L3 14h9l-1 8 10-12h-9l1-8z']],
-  arr:   [['p','M5 12h14'],['p','M12 5l7 7-7 7']],
-  chv:   [['p','M9 18l6-6-6-6']],
-  ld:    [['p','M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83']],
-  brain: [['p','M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.04-4.79A2.5 2.5 0 0 1 2 12a2.5 2.5 0 0 1 3.96-2.04A2.5 2.5 0 0 1 9.5 2z'],
-          ['p','M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.04-4.79A2.5 2.5 0 0 0 22 12a2.5 2.5 0 0 0-3.96-2.04A2.5 2.5 0 0 0 14.5 2z']],
-};
-const Ico = ({ n, s=16, cls='' }) => {
-  const items = ICO_D[n] || [];
-  const elems = items.map(([type, val], i) => {
-    if (type === 'p') return <path key={i} d={val}/>;
-    if (type === 'poly') return <polygon key={i} points={val}/>;
-    if (type === 'c') {
-      const [cx,cy,r] = val.split(',');
-      return <circle key={i} cx={cx} cy={cy} r={r}/>;
-    }
-    if (type === 'e') {
-      const [cx,cy,rx,ry] = val.split(',');
-      return <ellipse key={i} cx={cx} cy={cy} rx={rx} ry={ry}/>;
-    }
-    if (type === 'r4') {
-      const [x,y,w,h] = val.split(',');
-      return <rect key={i} x={x} y={y} width={w} height={h} rx="2"/>;
-    }
-    if (type === 'r2') {
-      const [x,y,w,h] = val.split(',');
-      return <rect key={i} x={x} y={y} width={w} height={h}/>;
-    }
-    if (type === 'r1') {
-      const [x,y,w,h] = val.split(',');
-      return <rect key={i} x={x} y={y} width={w} height={h} rx="2"/>;
-    }
-    return null;
-  });
-  return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
-      className={cls}>
-      {elems}
-    </svg>
-  );
-};
+  <script type="text/babel" data-presets="env,react">
+    const { useState, useEffect, useCallback, useRef } = React;
 
-// ── Live product preview shown in Step 1 ─────────────────────────────────────
-const ProductPreview = () => {
-  const topics = [
-    {slug:'karpathy-ml-lectures', n:8, c:2840, dot:'dg'},
-    {slug:'reasoning-models-2026',n:5, c:1340, dot:'dg'},
-    {slug:'sequoia-ai-report',    n:2, c:480,  dot:'da'},
-  ];
-  const [sel,setSel] = useState(0);
-  const conv = {
-    0:[
-      {role:'user',    text:"What does Karpathy say about where neural nets still fail?"},
-      {role:'assistant',text:"He argues that current networks fail at 'systematic generalisation' — they memorise training distributions rather than learning composable rules. His key example is arithmetic: a model trained on 3+4 won't reliably do 300+400 without specific training.",cites:['karpathy-ml-lectures @ 18:42','karpathy-ml-lectures @ 52:11']},
-    ],
-    1:[
-      {role:'user',    text:"How does o3-mini handle multi-step reasoning differently from earlier models?"},
-      {role:'assistant',text:"o3-mini uses chain-of-thought tokens hidden from the final output but part of the compute budget — thinking internally. This lets it trade inference time for accuracy, a fundamentally different scaling axis than model size.",cites:['reasoning-models-2026 @ 7:18','reasoning-models-2026 @ 23:44']},
-    ],
-    2:[
-      {role:'user',    text:'What does the Sequoia report say about AI ROI in 2026?'},
-      {role:'assistant',text:"The report finds that while AI spend has accelerated 3× since 2024, only 22% of enterprise deployments show measurable ROI. The gap is workflow integration, not model capability — models are ready, but organisations aren't.",cites:['sequoia-ai-report @ 11:05']},
-    ],
-  };
-  return (
-    <div style={{height:'100%',display:'flex',flexDirection:'column',background:'var(--surf)',borderRadius:14,overflow:'hidden',border:'1px solid var(--bd)',boxShadow:'0 32px 90px rgba(0,0,0,.65)'}}>
-      <div style={{background:'var(--deep)',padding:'10px 14px',display:'flex',alignItems:'center',gap:7,borderBottom:'1px solid var(--bd)',flexShrink:0}}>
-        <div style={{width:10,height:10,borderRadius:'50%',background:'#FF5F57'}}/><div style={{width:10,height:10,borderRadius:'50%',background:'#FEBC2E'}}/><div style={{width:10,height:10,borderRadius:'50%',background:'#28C840'}}/>
-        <span className="mono" style={{fontSize:10,color:'var(--t3)',marginLeft:6}}>learn-rv · dashboard</span>
-        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:5,fontSize:10}}><span style={{color:'var(--t3)'}}>Live</span><span className="dot dg" style={{width:6,height:6}}/></div>
-      </div>
-      <div style={{flex:1,display:'grid',gridTemplateColumns:'1fr 1.7fr',overflow:'hidden'}}>
-        <div style={{borderRight:'1px solid var(--bd)',padding:'10px 8px',overflowY:'auto'}}>
-          <div className="mono" style={{fontSize:9,color:'var(--t3)',letterSpacing:'.1em',padding:'0 6px 8px',textTransform:'uppercase'}}>Topics</div>
-          {topics.map((t,i)=>(
-            <div key={t.slug} onClick={()=>setSel(i)} style={{borderRadius:8,padding:'9px 10px',marginBottom:5,cursor:'pointer',border:`1px solid ${sel===i?'var(--bdh)':'var(--bd)'}`,background:sel===i?'rgba(59,130,246,.12)':'transparent',transition:'all .15s'}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                <span className="mono" style={{fontSize:9,color:sel===i?'var(--blu)':'var(--t1)',fontWeight:sel===i?600:400,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'80%'}}>{t.slug}</span>
-                <span className={`dot ${t.dot}`} style={{width:6,height:6,flexShrink:0}}/>
-              </div>
-              <div style={{fontSize:9,color:'var(--t3)'}}>{t.n}v · {t.c.toLocaleString()} chunks</div>
-            </div>
-          ))}
-        </div>
-        <div style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
-          <div style={{padding:'8px 12px',borderBottom:'1px solid var(--bd)',flexShrink:0}}>
-            <span className="mono" style={{fontSize:10,color:'var(--blu)'}}>{topics[sel].slug}</span>
-          </div>
-          <div style={{flex:1,padding:'10px 12px',overflowY:'auto',display:'flex',flexDirection:'column',gap:10}}>
-            {(conv[sel]||conv[0]).map((m,i)=>(
-              <div key={i} style={{display:'flex',flexDirection:m.role==='user'?'row-reverse':'row',gap:7}}>
-                <div style={{width:20,height:20,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"IBM Plex Mono",monospace',fontSize:8,border:'1px solid var(--bdm)',background:m.role==='user'?'rgba(59,130,246,.18)':'var(--elev)'}}>{m.role==='user'?'U':'AI'}</div>
-                <div style={{maxWidth:'88%'}}>
-                  <div className={m.role==='user'?'bu-u':'bu-a'} style={{padding:'8px 11px'}}>
-                    <p style={{fontSize:11,lineHeight:1.6,color:'var(--t1)'}}>{m.text}</p>
-                  </div>
-                  {m.cites&&<div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:5}}>{m.cites.map((c,j)=><span key={j} className="cite" style={{fontSize:9}}><Ico n="lnk" s={9}/>{c}</span>)}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{padding:'8px 10px',borderTop:'1px solid var(--bd)',flexShrink:0}}>
-            <div style={{background:'rgba(2,6,15,.5)',border:'1px solid var(--bdm)',borderRadius:8,padding:'7px 10px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <span style={{fontSize:10,color:'var(--t3)'}}>Ask anything…</span>
-              <div style={{width:24,height:24,borderRadius:6,background:'linear-gradient(135deg,#1D4ED8,#0E7490)',display:'flex',alignItems:'center',justifyContent:'center'}}><Ico n="send" s={11}/></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+    const BRIDGE = window.location.origin;  // same-origin, so just "/api/..."
+    const APP_VERSION = "v0.2.17";  // bumped when this file ships
 
-// ── Pipeline visual (step 2) ─────────────────────────────────────────────────
-const Pipeline = () => {
-  const steps = [
-    {icon:'🎬',label:'Video',     sub:'YouTube URL, playlist, or @channel',     col:'rgba(59,130,246,.15)',  brd:'rgba(59,130,246,.3)'},
-    {icon:'📝',label:'Transcript',sub:'Auto-captions + precise timestamps',     col:'rgba(6,182,212,.1)',   brd:'rgba(6,182,212,.25)'},
-    {icon:'🖼️',label:'Keyframes', sub:'pHash variance → Sonnet vision captions',col:'rgba(139,92,246,.1)', brd:'rgba(139,92,246,.25)'},
-    {icon:'⚡',label:'KB Ready',  sub:'HNSW-indexed RVF file · query instantly',col:'rgba(16,185,129,.1)', brd:'rgba(16,185,129,.25)'},
-  ];
-  return (
-    <div style={{display:'flex',alignItems:'flex-start',gap:0,marginBottom:22}}>
-      {steps.map((s,i)=>(
-        <div key={s.label} style={{display:'flex',alignItems:'flex-start',flex:1}}>
-          <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
-            <div style={{width:50,height:50,borderRadius:13,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,background:s.col,border:`1px solid ${s.brd}`}}>{s.icon}</div>
-            <div style={{fontWeight:600,fontSize:13,textAlign:'center'}}>{s.label}</div>
-            <div style={{fontSize:11,color:'var(--t3)',textAlign:'center',lineHeight:1.45}}>{s.sub}</div>
-          </div>
-          {i<steps.length-1&&<div style={{paddingTop:14,flexShrink:0,color:'var(--t3)',padding:'14px 2px 0'}}><Ico n="arr" s={13}/></div>}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-// ── Onboarding ────────────────────────────────────────────────────────────────
-const TOPICS_2026 = [
-  {slug:'karpathy-ml-lectures',      icon:'🧠', desc:'Neural nets, backprop & language models from first principles — 2025 series'},
-  {slug:'reasoning-models-2026',     icon:'⚡', desc:'o3, Claude 3.7, DeepSeek-R2 — how chain-of-thought actually scales'},
-  {slug:'sequoia-ai-report',         icon:'📊', desc:'AI in production: ROI data, infra costs, and what\'s actually working in 2026'},
-  {slug:'ai-agents-in-production',   icon:'🤖', desc:'MCP, tool use, multi-agent systems — real deployments & failure modes'},
-  {slug:'anthropic-interpretability',icon:'🔬', desc:'Mechanistic interpretability — what\'s inside the black box, and why it matters'},
-];
-
-const SAMPLE_QS = {
-  'karpathy-ml-lectures':     ["Why does Karpathy think tokenization is the biggest bottleneck?","Where do transformers still fail systematically?","What's his take on the bitter lesson in 2025?"],
-  'reasoning-models-2026':    ["How does o3-mini differ from chain-of-thought in earlier models?","What's the compute tradeoff between reasoning time and accuracy?","Which benchmarks actually distinguish these models?"],
-  'sequoia-ai-report':        ["What does the Sequoia report say about AI ROI in 2026?","Which sectors are seeing real productivity gains?","What's blocking enterprise AI adoption?"],
-  'ai-agents-in-production':  ["What are the most common agent failure modes in production?","How do the best teams handle tool-use errors?","What does reliable multi-agent coordination look like?"],
-  'anthropic-interpretability':["What is a superposition in neural nets?","How do circuits relate to model capabilities?","What's the link between interpretability and alignment?"],
-};
-
-const SAMPLE_ANSWERS = {
-  'karpathy-ml-lectures': "Karpathy argues tokenization creates an artificial compression layer between raw data and the model's intelligence. Rather than learning from bytes, models learn from merged byte-sequences — inheriting tokenization's quirks: inconsistent splitting, poor handling of numbers, and vocabulary that can't generalise below the token boundary. He calls it \"a weird, sprawling, hacky thing\" and considers byte-level models the long-term fix.",
-  'reasoning-models-2026': "o3-mini uses chain-of-thought tokens that are hidden from the final output but are part of the compute budget — thinking internally rather than streaming thoughts. This creates a fundamentally different scaling axis: instead of making the model bigger, you give it more inference-time compute to think longer. The accuracy-cost tradeoff is explicit and adjustable at inference time.",
-  'sequoia-ai-report': "The 2026 Sequoia report finds that while AI spend has accelerated 3× since 2024, only 22% of enterprise deployments show measurable ROI. The gap isn't model capability — models are ready. The gap is workflow integration: getting AI outputs into the actual systems where work happens, with humans in the right places in the loop.",
-  'ai-agents-in-production': "The most common failure mode is silent hallucination in tool outputs — the agent calls a tool, gets a plausible-looking but wrong response, and continues confidently. Teams that ship reliable agents implement mandatory output schemas with validation, confidence thresholds that trigger human review, and detailed structured logs of every tool call for debugging.",
-  'anthropic-interpretability': "Superposition is the phenomenon where a neural net represents more features than it has dimensions — essentially hiding multiple concepts in overlapping directions of activation space. The model can do this because most features are sparse (rarely active), so they rarely interfere. Understanding superposition is the key to reading what a model actually represents internally.",
-};
-
-const SAMPLE_CITES = {
-  'karpathy-ml-lectures':    ['karpathy-ml-lectures @ 12:34','karpathy-ml-lectures @ 31:07','karpathy-ml-lectures @ 44:15'],
-  'reasoning-models-2026':   ['reasoning-models-2026 @ 7:18','reasoning-models-2026 @ 23:44'],
-  'sequoia-ai-report':       ['sequoia-ai-report @ 11:05','sequoia-ai-report @ 28:33'],
-  'ai-agents-in-production': ['ai-agents-in-production @ 14:22','ai-agents-in-production @ 38:10'],
-  'anthropic-interpretability':['anthropic-interpretability @ 9:41','anthropic-interpretability @ 22:08'],
-};
-
-const Onboarding = ({ onDone }) => {
-  const [step,setStep]   = useState(1);
-  const [url,setUrl]     = useState('');
-  const [log,setLog]     = useState([]);
-  const [pct,setPct]     = useState(0);
-  const [done,setDone]   = useState(false);
-  const [q,setQ]         = useState('');
-  const [ans,setAns]     = useState('');
-  const [typing,setTyping] = useState(false);
-  const [selIdx,setSelIdx] = useState(0);
-  const logRef = useRef(null);
-  useEffect(()=>{ if(logRef.current) logRef.current.scrollTop=logRef.current.scrollHeight; },[log]);
-  const addLog = (msg,type='info') => setLog(p=>[...p,{msg,type,id:Date.now()+Math.random()}]);
-  const lcls = {info:'li',success:'ls',active:'la',warn:'lw'};
-  const selSlug = TOPICS_2026[selIdx].slug;
-
-  const simulateIngest = () => {
-    const slug = TOPICS_2026[selIdx].slug;
-    const steps = [
-      [200,  'Resolving source…',                       'info'],
-      [700,  'Fetching video metadata',                 'info'],
-      [1200, 'Downloading transcript (auto-captions)…', 'active'],
-      [2000, '1,204 segments · 18,600 words',           'success'],
-      [2400, 'Analysing pHash frame variance…',         'active'],
-      [3100, 'Variance 0.43 — extracting keyframes',    'info'],
-      [3600, '58 keyframes extracted',                  'success'],
-      [4000, 'Captioning with Sonnet vision…',          'active'],
-      [5600, '58 / 58 frames captioned',                'success'],
-      [6000, '124 chunks @ 300 tokens',                 'info'],
-      [6600, 'Embedding (all-MiniLM-L6-v2)…',          'active'],
-      [7400, 'Indexed 124 vectors → HNSW',              'success'],
-      [7700, `Writing ~/Docs/KB/${slug}.rvf`,           'info'],
-      [8100, `Done · 124 chunks · 58 frames · 3.2 MB`, 'success'],
+    const STARTERS = [
+      {
+        slug: "day-trading-with-ai",
+        title: "Day trading with AI · beating the retail average",
+        blurb: "Synthesize the strategies that consistently outperform — without falling for the gurus selling courses.",
+        source: "https://www.youtube.com/@MarkMeldrum",
+        emoji: "📈",
+        firstQuestion: "Across the channels you watched, what's the single edge that separates traders who beat the S&P 500 from the 80% that don't?",
+      },
+      {
+        slug: "retirement-planning-at-45",
+        title: "Retirement planning at 45 · own the math",
+        blurb: "Stop paying 1% AUM to someone repeating talking points. Build the analysis a fee-only advisor would build.",
+        source: "https://www.youtube.com/@TheMoneyGuyShow",
+        emoji: "🏦",
+        firstQuestion: "If I have $400k in a 401k at 45 and want to retire at 60, what does the math actually say I need to save monthly?",
+      },
+      {
+        slug: "southeast-asia-6-weeks",
+        title: "Solo travel · 6 weeks across SE Asia under $4k",
+        blurb: "Bangkok → Hanoi → Hoi An → Bali. Real routes, real costs, real visa quirks from people who just did it.",
+        source: "https://www.youtube.com/@KaraandNate",
+        emoji: "🌏",
+        firstQuestion: "What's the optimal order to do Thailand → Vietnam → Indonesia in October-November to chase good weather?",
+      },
+      {
+        slug: "ai-moat-for-solo-builders",
+        title: "Gen AI as a moat · what ChatGPT can't sell",
+        blurb: "What's actually working from the indie hackers shipping AI products in 2026.",
+        source: "https://www.youtube.com/@ycombinator",
+        emoji: "🛠️",
+        firstQuestion: "What kinds of AI products are indie builders actually charging real money for in 2026?",
+      },
+      {
+        slug: "strength-after-40",
+        title: "Strength training after 40 · without breaking",
+        blurb: "Programming, recovery, mobility, and what changes when you can't just lift through it.",
+        source: "https://www.youtube.com/@JeffNippard",
+        emoji: "🏋️",
+        firstQuestion: "Based on the actual evidence-based coaches, what's the right weekly volume for someone over 40 trying to add muscle?",
+      },
+      {
+        slug: "home-solar-suburbia",
+        title: "DIY home solar + battery in suburbia",
+        blurb: "From sizing to permitting to the right inverter, distilled from people who've already wired their roof.",
+        source: "https://www.youtube.com/@WillProwse",
+        emoji: "☀️",
+        firstQuestion: "What's the realistic total cost — panels + battery + inverter + permits — for a 10kW DIY install on a 2,400 sqft suburban home?",
+      },
     ];
-    steps.forEach(([ms,msg,type],i)=>setTimeout(()=>{
-      addLog(msg,type);
-      setPct(Math.round((i/(steps.length-1))*100));
-      if(i===steps.length-1)setDone(true);
-    },ms));
-  };
 
-  const handleAsk = () => {
-    if(!q.trim()||typing) return;
-    setTyping(true); setAns('');
-    const text = SAMPLE_ANSWERS[selSlug] || "Based on the knowledge base, here is what I found…";
-    let i=0; const t=setInterval(()=>{
-      if(i<text.length) setAns(text.slice(0,++i));
-      else { clearInterval(t); setTyping(false); }
-    },13);
-  };
+    // ── App root ────────────────────────────────────────────────────────
 
-  const stepMeta = [{n:1,label:'See it'},{n:2,label:'Add video'},{n:3,label:'Processing'},{n:4,label:'Ask'}];
+    function App() {
+      const [bridge, setBridge] = useState("checking");
+      const [status, setStatus] = useState(null);
+      const [topics, setTopics] = useState([]);
+      const [step, setStep] = useState("seed");
+      const [seedName, setSeedName] = useState("My Seed");
+      const [activeTopic, setActiveTopic] = useState(null);
+      const [ingestStats, setIngestStats] = useState(null);
 
-  return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{background:'var(--void)'}}>
-      <div style={{position:'absolute',top:'28%',left:'50%',transform:'translate(-50%,-50%)',width:720,height:720,borderRadius:'50%',background:'radial-gradient(circle,rgba(59,130,246,.09) 0%,transparent 65%)',pointerEvents:'none'}}/>
+      const probe = useCallback(async () => {
+        try {
+          const res = await fetch(`${BRIDGE}/api/health`);
+          if (!res.ok) throw new Error("not ok");
+          const [s, t] = await Promise.all([
+            fetch(`${BRIDGE}/api/status`).then(r => r.json()),
+            fetch(`${BRIDGE}/api/topics`).then(r => r.json()),
+          ]);
+          setStatus(s);
+          setTopics(t.topics ?? []);
+          setBridge("online");
+          if (s.seed.connected && step === "seed") setStep("topic");
+        } catch {
+          setBridge("offline");
+        }
+      }, [step]);
 
-      <div className="glass fade-up" style={{position:'relative',width:'min(900px,96vw)',maxHeight:'93vh',borderRadius:20,border:'1px solid var(--bdm)',boxShadow:'0 40px 120px rgba(0,0,0,.75)',display:'flex',flexDirection:'column'}}>
-        <button onClick={onDone} className="btn btn-g absolute" style={{top:15,right:15,borderRadius:8,padding:'5px 12px',fontSize:12,gap:5,zIndex:10}}>
-          Skip <Ico n="chv" s={12}/>
-        </button>
+      useEffect(() => {
+        probe();
+        const id = setInterval(probe, 5000);
+        return () => clearInterval(id);
+      }, [probe]);
 
-        <div style={{flex:1,overflowY:'auto',padding:'40px 46px 28px'}}>
+      return (
+        <div className="min-h-screen">
+          <Header bridge={bridge} />
+          <main className="max-w-4xl mx-auto px-5 sm:px-6 pb-24">
+            {bridge === "checking" && (
+              <div className="py-20 text-center mono text-[11px] uppercase tracking-widest text-slate-500">
+                looking for your bridge…
+              </div>
+            )}
+            {bridge === "offline" && <BridgeOffline />}
+            {bridge === "online" && status && (
+              <>
+                <Stepper step={step} />
+                {step === "seed" && (
+                  <SeedStep
+                    status={status}
+                    seedName={seedName}
+                    setSeedName={setSeedName}
+                    onPaired={() => { probe(); setStep("topic"); }}
+                  />
+                )}
+                {step === "topic" && (
+                  <TopicStep
+                    topics={topics}
+                    onStarter={t => { setActiveTopic(t); setStep("ingest"); }}
+                    onExisting={t => {
+                      setActiveTopic({ slug: t.slug, title: t.slug, blurb: "", source: "", emoji: "✨", firstQuestion: "" });
+                      setStep("chat");
+                    }}
+                  />
+                )}
+                {step === "ingest" && activeTopic && (
+                  <IngestStep
+                    topic={activeTopic}
+                    seedName={seedName}
+                    onDone={stats => { setIngestStats(stats); probe(); setStep("wow"); }}
+                  />
+                )}
+                {step === "wow" && activeTopic && ingestStats && (
+                  <WowCard
+                    topic={activeTopic}
+                    seedName={seedName}
+                    stats={ingestStats}
+                    onAsk={() => setStep("chat")}
+                  />
+                )}
+                {step === "chat" && activeTopic && (
+                  <ChatStep
+                    topics={topics}
+                    seedName={seedName}
+                    initialTopic={activeTopic.slug}
+                    initialQuestion={activeTopic.firstQuestion}
+                  />
+                )}
+              </>
+            )}
+          </main>
+          <Footer />
+        </div>
+      );
+    }
 
-          {/* ── Step 1 ── */}
-          {step===1&&<div className="fade-up">
-            <div className="mono" style={{fontSize:10,letterSpacing:'.15em',textTransform:'uppercase',color:'var(--cyn)',marginBottom:14}}>learn-rv · 2026</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1.15fr',gap:36,alignItems:'start'}}>
-              <div>
-                <h1 style={{fontSize:31,fontWeight:700,letterSpacing:'-.03em',lineHeight:1.15,marginBottom:16}}>
-                  Turn <span className="grad-text">any YouTube video</span> into a knowledge base you can query forever.
-                </h1>
-                <p style={{fontSize:14,color:'var(--t2)',lineHeight:1.72,marginBottom:24}}>
-                  Paste a URL. Learn-RV downloads the transcript, captures key frames with AI vision, builds a local vector knowledge base, and lets you ask questions in plain language — with timestamped citations back to the exact moment in the video.
-                </p>
-                <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:30}}>
-                  {['Runs 100% locally','No cloud, no subscription','Syncs to Cognitum Seed','Full citations on every answer'].map(l=>(
-                    <span key={l} style={{fontSize:11,fontWeight:500,padding:'4px 10px',borderRadius:6,background:'rgba(59,130,246,.1)',border:'1px solid rgba(59,130,246,.2)',color:'var(--blu)'}}>{l}</span>
-                  ))}
+    // ── Header ──────────────────────────────────────────────────────────
+
+    function Header({ bridge }) {
+      const cfg = bridge === "online"
+        ? { dot: "bg-emerald-400", short: "live", full: `bridge running · ${APP_VERSION}`, tone: "text-emerald-300" }
+        : bridge === "offline"
+          ? { dot: "bg-amber-400", short: "waiting", full: "waiting for bridge", tone: "text-amber-300" }
+          : { dot: "bg-slate-500", short: "...", full: "checking…", tone: "text-slate-400" };
+      return (
+        <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-10">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <BrandMark />
+              <span className="mono text-sm tracking-wider text-slate-100 whitespace-nowrap">learn-rv</span>
+              <span className="mono text-[10px] uppercase tracking-widest text-slate-500 whitespace-nowrap">{APP_VERSION}</span>
+            </div>
+            <div className={`flex items-center gap-2 mono text-[10px] sm:text-[11px] uppercase tracking-widest whitespace-nowrap ${cfg.tone}`}>
+              <span className={`w-1.5 h-1.5 ${cfg.dot}`} style={{ animation: bridge !== "checking" ? "pulse 2s ease-in-out infinite" : "none" }} />
+              <span className="hidden sm:inline">{cfg.full}</span>
+              <span className="sm:hidden">{cfg.short}</span>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    function BrandMark() {
+      return (
+        <svg viewBox="0 0 28 28" width="28" height="28" aria-hidden>
+          <circle cx="14" cy="14" r="11" fill="none" stroke="#fcd34d" strokeWidth="1.2" opacity="0.4" />
+          <circle cx="14" cy="14" r="6" fill="none" stroke="#38bdf8" strokeWidth="1.2" />
+          <circle cx="14" cy="14" r="2" fill="#fb923c" />
+        </svg>
+      );
+    }
+
+    // ── Stepper ─────────────────────────────────────────────────────────
+
+    function Stepper({ step }) {
+      const labels = [
+        { id: "seed", label: "Pair" },
+        { id: "topic", label: "Pick" },
+        { id: "ingest", label: "Learn" },
+        { id: "chat", label: "Ask" },
+      ];
+      const idx = step === "wow" ? 3 : labels.findIndex(l => l.id === step);
+      return (
+        <nav className="mt-10 mb-10 flex items-center gap-4">
+          {labels.map((l, i) => {
+            const done = i < idx, active = i === idx;
+            const dot = done ? "bg-amber-300 text-slate-950 border-amber-300"
+                       : active ? "bg-amber-300/15 border-amber-300 text-amber-300"
+                       : "bg-slate-900 border-slate-700 text-slate-600";
+            const txt = (done || active) ? "text-amber-300" : "text-slate-600";
+            return (
+              <React.Fragment key={l.id}>
+                <div className="flex items-center gap-2">
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border ${dot}`}>
+                    {done ? "✓" : i + 1}
+                  </span>
+                  <span className={`mono text-[10px] uppercase tracking-widest whitespace-nowrap ${txt}`}>{l.label}</span>
                 </div>
-                <button onClick={()=>setStep(2)} className="btn btn-p w-full" style={{borderRadius:11,padding:'14px 0',fontSize:15,gap:10}}>
-                  Build my first knowledge base <Ico n="arr" s={16}/>
+                {i < labels.length - 1 && (
+                  <span className={`flex-1 h-px ${done ? "bg-amber-300/40" : "bg-slate-800"}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </nav>
+      );
+    }
+
+    // ── Bridge offline (shouldn't normally happen — bridge IS the server) ─
+
+    function BridgeOffline() {
+      return (
+        <div className="mt-10 border border-amber-500/30 bg-amber-500/[0.04] rounded-md p-6">
+          <div className="mono text-[11px] uppercase tracking-widest text-amber-300 mb-3">CONNECTION LOST</div>
+          <h2 className="text-2xl font-bold text-slate-50 mb-2">The bridge stopped responding.</h2>
+          <p className="text-slate-300 text-[14px]">If you closed the terminal running <span className="mono text-amber-200">learn ui</span>, start it again.</p>
+        </div>
+      );
+    }
+
+    // ── Step 1: Seed pairing ────────────────────────────────────────────
+
+    function SeedStep({ status, seedName, setSeedName, onPaired }) {
+      const [phase, setPhase] = useState("idle");  // idle, scanning, found, manual
+      const [secondsLeft, setSecondsLeft] = useState(4);
+      const [foundIp, setFoundIp] = useState(null);
+      const [manual, setManual] = useState(status.seed.ip ?? "");
+
+      const scan = async () => {
+        setPhase("scanning"); setSecondsLeft(4);
+        const tid = setInterval(() => setSecondsLeft(s => Math.max(0, s - 1)), 1000);
+        try {
+          const res = await fetch(`${BRIDGE}/api/seed/discover`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ timeout_secs: 4 }),
+          });
+          const data = await res.json();
+          clearInterval(tid);
+          const first = (data.found ?? [])[0];
+          if (first) { setFoundIp(first); setPhase("found"); }
+          else { setPhase("manual"); }
+        } catch {
+          clearInterval(tid);
+          setPhase("manual");
+        }
+      };
+
+      const pair = async addr => {
+        try {
+          const res = await fetch(`${BRIDGE}/api/seed/configure`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ address: addr, auto_push: true }),
+          });
+          if (res.ok) onPaired();
+        } catch {}
+      };
+
+      return (
+        <section className="fade-in">
+          <h2 className="display text-[36px] sm:text-[44px] leading-[1.1] text-slate-50 mb-3">
+            Let's <em className="text-amber-300 italic">find</em> your Seed.
+          </h2>
+          <p className="text-slate-400 text-[15px] leading-relaxed mb-10 max-w-2xl">
+            Your Cognitum Seed broadcasts itself on your local network. One scan and we should see it. If you connected by USB, we'll fall back to the cable.
+          </p>
+
+          {status.seed.ip && phase === "idle" && (
+            <div className="mb-6 px-4 py-3 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm">
+              Already paired with <span className="mono">{status.seed.ip}</span> · <button className="underline" onClick={onPaired}>continue</button>
+            </div>
+          )}
+
+          {phase === "idle" && (
+            <button onClick={scan} className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-5 bg-amber-300 text-slate-950 font-semibold text-[17px] hover:bg-amber-200 transition rounded">
+              <span className="w-2 h-2 rounded-full bg-slate-950" /> Scan my network for the Seed
+            </button>
+          )}
+
+          {phase === "scanning" && (
+            <div className="border border-amber-300/30 rounded p-8 bg-amber-300/[0.03] flex items-center gap-4">
+              <Spinner />
+              <div>
+                <div className="text-slate-100 font-medium">Scanning your network…</div>
+                <div className="mono text-[11px] uppercase tracking-widest text-amber-300 mt-1">{secondsLeft}s remaining</div>
+              </div>
+            </div>
+          )}
+
+          {phase === "found" && foundIp && (
+            <FoundCard ip={foundIp} seedName={seedName} setSeedName={setSeedName} onPair={() => pair(foundIp)} />
+          )}
+
+          {phase === "manual" && (
+            <div className="border border-slate-800 rounded p-6 bg-slate-900/40 space-y-4">
+              <div className="mono text-[11px] uppercase tracking-widest text-amber-300">mDNS DIDN'T FIND ONE</div>
+              <h3 className="text-lg font-semibold text-slate-100">No worries. Try one of these.</h3>
+              <ul className="space-y-2 text-slate-300 text-[14px]">
+                <li>· Make sure your Seed is plugged in and powered on.</li>
+                <li>· Confirm your Seed is on the same WiFi as this laptop.</li>
+                <li>· If it's USB-connected, it's probably at <span className="mono text-amber-200">169.254.42.1</span>.</li>
+              </ul>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button onClick={() => pair("169.254.42.1")} className="px-5 py-3 border border-amber-300 text-amber-300 hover:bg-amber-300 hover:text-slate-950 transition rounded">
+                  Connect via USB
+                </button>
+                <input value={manual} onChange={e => setManual(e.target.value)} placeholder="…or paste an IP"
+                  className="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 text-slate-200 mono text-sm rounded" />
+                <button onClick={() => manual && pair(manual)} disabled={!manual}
+                  className="px-5 py-3 bg-amber-300 text-slate-950 font-medium hover:bg-amber-200 disabled:opacity-50 transition rounded">
+                  Pair
                 </button>
               </div>
-              <div style={{height:370}} className="float">
-                <ProductPreview/>
-              </div>
+              <button onClick={scan} className="mono text-[11px] uppercase tracking-widest text-slate-500 hover:text-amber-300 transition">← scan again</button>
             </div>
-          </div>}
+          )}
+        </section>
+      );
+    }
 
-          {/* ── Step 2 ── */}
-          {step===2&&<div className="fade-up">
-            <div className="mono" style={{fontSize:10,letterSpacing:'.15em',textTransform:'uppercase',color:'var(--cyn)',marginBottom:16}}>Step 2 of 4 · Choose a topic</div>
-            <h2 style={{fontSize:24,fontWeight:700,letterSpacing:'-.025em',marginBottom:8}}>What do you want to master?</h2>
-            <p style={{fontSize:14,color:'var(--t2)',lineHeight:1.65,marginBottom:22}}>Select a topic below or paste any YouTube URL. Learn-RV ingests the video through this pipeline:</p>
-            <Pipeline/>
-            <div className="mono" style={{fontSize:10,color:'var(--t3)',letterSpacing:'.06em',marginBottom:10,textTransform:'uppercase'}}>Popular starting points — May 2026</div>
-            <div style={{display:'flex',flexDirection:'column',gap:7,marginBottom:18}}>
-              {TOPICS_2026.map((t,i)=>(
-                <div key={t.slug} onClick={()=>{setSelIdx(i);setUrl('https://youtube.com/');}} style={{borderRadius:10,padding:'12px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:12,border:`1px solid ${selIdx===i?'var(--bdh)':'var(--bd)'}`,background:selIdx===i?'rgba(59,130,246,.1)':'rgba(12,24,40,.5)',transition:'all .15s'}}>
-                  <span style={{fontSize:20,flexShrink:0}}>{t.icon}</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div className="mono" style={{fontSize:12,fontWeight:500,color:selIdx===i?'var(--blu)':'var(--t1)',marginBottom:2}}>{t.slug}</div>
-                    <div style={{fontSize:11,color:'var(--t3)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.desc}</div>
+    function FoundCard({ ip, seedName, setSeedName, onPair }) {
+      return (
+        <div className="border border-emerald-400/30 rounded p-7 bg-emerald-400/[0.04] relative overflow-hidden fade-in">
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="mono text-[11px] uppercase tracking-widest text-emerald-300 flex items-center gap-2 mb-4">
+            <span className="relative inline-flex w-3 h-3">
+              <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75" style={{ animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite" }} />
+              <span className="relative inline-flex w-3 h-3 rounded-full bg-emerald-400" />
+            </span>
+            FOUND YOUR SEED
+          </div>
+          <h3 className="text-[24px] font-bold text-slate-50 mb-2">Hello, {seedName}.</h3>
+          <p className="text-slate-300 text-[14px] mb-6 leading-relaxed">
+            Cognitum Seed · on your local network · offline-capable.
+            <br/><span className="text-slate-500">It's ready to learn whatever you point it at.</span>
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label className="mono text-[10px] uppercase tracking-widest text-slate-400 block mb-1.5">
+                What do you want to call this Seed?
+              </label>
+              <input value={seedName} onChange={e => setSeedName(e.target.value)}
+                className="w-full sm:w-72 px-3 py-2 bg-slate-950 border border-slate-700 text-slate-100 rounded focus:border-emerald-400 focus:outline-none" />
+            </div>
+            <button onClick={onPair} className="inline-flex items-center gap-2 px-7 py-3.5 bg-emerald-400 text-slate-950 font-semibold hover:bg-emerald-300 transition rounded">
+              Pair {seedName} →
+            </button>
+          </div>
+          <details className="mt-5">
+            <summary className="mono text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-300 cursor-pointer">technical</summary>
+            <div className="mt-2 mono text-[11px] text-slate-500">mDNS · _cognitum._tcp.local · {ip}</div>
+          </details>
+        </div>
+      );
+    }
+
+    function Spinner() {
+      return (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ animation: "spin 1s linear infinite" }} className="text-amber-300">
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeOpacity="0.2" />
+          <path d="M21 12a9 9 0 00-9-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    }
+
+    // ── Step 2: Topic ───────────────────────────────────────────────────
+
+    function TopicStep({ topics, onStarter, onExisting }) {
+      const [customTitle, setCustomTitle] = useState("");
+      const [customSource, setCustomSource] = useState("");
+      const [showCustom, setShowCustom] = useState(false);
+
+      const startCustom = () => {
+        if (!customTitle || !customSource) return;
+        const slug = customTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        onStarter({
+          slug, title: customTitle, blurb: "Your custom topic.", source: customSource,
+          emoji: "✨",
+          firstQuestion: `What's the most important thing to know about ${customTitle.toLowerCase()}?`,
+        });
+      };
+
+      return (
+        <section className="fade-in">
+          <h2 className="display text-[36px] sm:text-[44px] leading-[1.1] text-slate-50 mb-3">
+            What do you want to be an <em className="text-amber-300 italic">expert</em> at?
+          </h2>
+          <p className="text-slate-400 text-[15px] leading-relaxed mb-3 max-w-2xl">
+            Pick a starter. Your Seed will pull 3–5 of the best YouTube channels on it, watch all 15+ hours, synthesize what they agree and disagree on, and hold it forever.
+          </p>
+          <p className="text-slate-500 text-[13px] leading-relaxed mb-10 max-w-2xl italic">
+            Tip: the more specific your topic, the more uncanny the answers. "Day trading" is mush. "Day trading the SPY with 0DTE options" gets you a real expert.
+          </p>
+
+          <div className="mono text-[10px] uppercase tracking-widest text-amber-300 mb-4 flex items-center gap-2">
+            <span className="inline-block w-3 h-px bg-amber-300" />STARTER TOPICS
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3 mb-10">
+            {STARTERS.map(s => (
+              <button key={s.slug} onClick={() => onStarter(s)}
+                className="text-left border border-slate-800 hover:border-amber-300/60 bg-slate-900/30 hover:bg-slate-900/60 p-5 rounded transition group">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">{s.emoji}</div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-slate-100 group-hover:text-amber-300 transition">{s.title}</div>
+                    <div className="text-slate-400 text-[13px] mt-1 leading-snug">{s.blurb}</div>
                   </div>
-                  {selIdx===i&&<div style={{color:'var(--grn)',flexShrink:0}}><Ico n="chk" s={16}/></div>}
+                  <div className="mono text-[10px] text-slate-600 group-hover:text-amber-300/70 transition">→</div>
                 </div>
-              ))}
-            </div>
-            <div style={{borderTop:'1px solid var(--bd)',paddingTop:16,marginBottom:22}}>
-              <div className="mono" style={{fontSize:10,color:'var(--t3)',letterSpacing:'.06em',marginBottom:8,textTransform:'uppercase'}}>Or paste your own URL</div>
-              <input className="field mono" style={{borderRadius:9,padding:'11px 14px',fontSize:13}} placeholder="https://www.youtube.com/watch?v=… or @channel or playlist" value={url} onChange={e=>setUrl(e.target.value)}/>
-            </div>
-            <div style={{display:'flex',gap:10}}>
-              <button onClick={()=>setStep(1)} className="btn btn-g" style={{borderRadius:9,padding:'11px 20px',fontSize:14}}>Back</button>
-              <button onClick={()=>{setStep(3);simulateIngest();}} className="btn btn-p flex-1" style={{borderRadius:9,padding:'11px 0',fontSize:14,gap:9}}>
-                Start building <Ico n="upl" s={15}/>
+              </button>
+            ))}
+          </div>
+
+          {!showCustom ? (
+            <button onClick={() => setShowCustom(true)}
+              className="mono text-[11px] uppercase tracking-widest text-slate-400 hover:text-amber-300 transition flex items-center gap-2 mb-10">
+              <span className="inline-block w-3 h-px bg-current" />Or describe your own topic
+            </button>
+          ) : (
+            <div className="border border-slate-800 bg-slate-900/30 rounded p-5 space-y-4 mb-10">
+              <div className="mono text-[10px] uppercase tracking-widest text-amber-300">YOUR OWN TOPIC</div>
+              <input value={customTitle} onChange={e => setCustomTitle(e.target.value)}
+                placeholder="Topic name (e.g. mountain biking technique on east-coast trails)"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 text-slate-200 rounded" />
+              <input value={customSource} onChange={e => setCustomSource(e.target.value)}
+                placeholder="YouTube channel or playlist URL"
+                className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 text-slate-200 mono text-sm rounded" />
+              <button onClick={startCustom} disabled={!customTitle || !customSource}
+                className="px-5 py-2.5 bg-amber-300 text-slate-950 font-medium hover:bg-amber-200 disabled:opacity-50 transition rounded">
+                Build this expert →
               </button>
             </div>
-          </div>}
+          )}
 
-          {/* ── Step 3 ── */}
-          {step===3&&<div className="fade-up">
-            <div className="mono" style={{fontSize:10,letterSpacing:'.15em',textTransform:'uppercase',color:'var(--cyn)',marginBottom:16}}>Step 3 of 4 · Processing</div>
-            <h2 style={{fontSize:24,fontWeight:700,letterSpacing:'-.025em',marginBottom:6}}>Building your knowledge base</h2>
-            <p style={{fontSize:14,color:'var(--t2)',lineHeight:1.65,marginBottom:22}}>Extracting the transcript, capturing key frames with Sonnet vision, generating embeddings, and indexing everything into HNSW for instant retrieval.</p>
-            <div style={{marginBottom:7,borderRadius:6,height:6,background:'var(--void)',overflow:'hidden'}}>
-              <div className={pct<100?'bar-sh':''} style={{height:'100%',width:`${pct}%`,borderRadius:6,transition:'width .5s ease',background:pct===100?'var(--grn)':undefined}}/>
-            </div>
-            <div className="mono" style={{fontSize:10,color:'var(--t3)',textAlign:'right',marginBottom:18}}>{pct}%</div>
-            <div style={{borderRadius:12,overflow:'hidden',border:'1px solid var(--bd)',marginBottom:22}}>
-              <div style={{background:'rgba(2,6,15,.9)',padding:'9px 14px',display:'flex',alignItems:'center',gap:6,borderBottom:'1px solid var(--bd)'}}>
-                <div style={{width:10,height:10,borderRadius:'50%',background:'#FF5F57'}}/><div style={{width:10,height:10,borderRadius:'50%',background:'#FEBC2E'}}/><div style={{width:10,height:10,borderRadius:'50%',background:'#28C840'}}/>
-                <span className="mono" style={{fontSize:11,color:'var(--t3)',marginLeft:8}}>learn ingest · {selSlug}</span>
+          {topics.length > 0 && (
+            <div>
+              <div className="mono text-[10px] uppercase tracking-widest text-emerald-300 mb-3 flex items-center gap-2">
+                <span className="inline-block w-3 h-px bg-emerald-300" />EXISTING TOPICS · {topics.length}
               </div>
-              <div className="term" style={{background:'rgba(2,6,15,.85)',height:190,padding:'14px 16px'}}>
-                <div ref={logRef} style={{height:'100%',overflowY:'auto'}}>
-                  {log.length===0&&<div className="log-l li" style={{opacity:.4}}>Initialising pipeline…</div>}
-                  {log.map(e=><div key={e.id} className={`log-l ${lcls[e.type]||'li'}`}><span style={{color:'var(--t3)',marginRight:8}}>›</span>{e.msg}</div>)}
-                  {!done&&log.length>0&&<div className="log-l la tcur" style={{opacity:.6}}/>}
-                </div>
-              </div>
-            </div>
-            {done
-              ?<button onClick={()=>setStep(4)} className="btn btn-p w-full" style={{borderRadius:10,padding:'13px 0',fontSize:14,gap:8}}><Ico n="chk" s={16}/>Knowledge base ready — ask your first question</button>
-              :<div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,color:'var(--t3)',fontSize:13}}><Ico n="ld" s={16} cls="spin"/> Typically 20–90 s · depends on video length</div>}
-          </div>}
-
-          {/* ── Step 4 ── */}
-          {step===4&&<div className="fade-up">
-            <div className="mono" style={{fontSize:10,letterSpacing:'.15em',textTransform:'uppercase',color:'var(--cyn)',marginBottom:16}}>Step 4 of 4 · Ask anything</div>
-            <h2 style={{fontSize:24,fontWeight:700,letterSpacing:'-.025em',marginBottom:8}}>Your knowledge base is ready.</h2>
-            <p style={{fontSize:14,color:'var(--t2)',lineHeight:1.65,marginBottom:22}}>Ask any question about <span className="mono" style={{color:'var(--blu)'}}>{selSlug}</span>. Every answer includes precise timestamp citations so you can jump straight to the moment in the video.</p>
-            <div style={{marginBottom:18}}>
-              <div className="mono" style={{fontSize:10,color:'var(--t3)',letterSpacing:'.06em',marginBottom:10,textTransform:'uppercase'}}>Suggested questions</div>
-              <div style={{display:'flex',flexDirection:'column',gap:7}}>
-                {(SAMPLE_QS[selSlug]||[]).slice(0,3).map(s=>(
-                  <button key={s} onClick={()=>setQ(s)} className="btn btn-g" style={{borderRadius:9,padding:'11px 14px',fontSize:13,justifyContent:'flex-start',textAlign:'left'}}>
-                    <span style={{color:'var(--cyn)',marginRight:10,flexShrink:0}}>→</span>{s}
+              <div className="space-y-2">
+                {topics.map(t => (
+                  <button key={t.slug} onClick={() => onExisting(t)}
+                    className="block w-full text-left border border-slate-800 hover:border-emerald-300/60 bg-slate-950 p-4 rounded transition">
+                    <div className="flex items-center justify-between">
+                      <code className="mono text-emerald-300">{t.slug}</code>
+                      <span className="mono text-[10px] uppercase tracking-widest text-slate-500">
+                        {t.video_count} videos · {t.chunks} chunks
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
-            <div style={{display:'flex',gap:8,marginBottom:16}}>
-              <input className="field flex-1" style={{borderRadius:10,padding:'12px 16px',fontSize:14}} placeholder="Or type your own question…" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAsk()}/>
-              <button onClick={handleAsk} disabled={typing||!q.trim()} className="btn btn-p" style={{borderRadius:10,padding:'12px 18px'}}>{typing?<Ico n="ld" s={16} cls="spin"/>:<Ico n="send" s={16}/>}</button>
-            </div>
-            {(ans||typing)&&<div className="glass fade-in" style={{borderRadius:12,padding:'16px 18px',marginBottom:20}}>
-              <p style={{fontSize:14,lineHeight:1.75,color:'var(--t1)'}}>{ans||''}{typing&&!ans&&<Ico n="ld" s={14} cls="spin"/>}{typing&&ans&&<span className="blink" style={{color:'var(--blu)'}}> |</span>}</p>
-              {!typing&&ans&&<div style={{marginTop:12,display:'flex',gap:6,flexWrap:'wrap'}}>{(SAMPLE_CITES[selSlug]||[]).map((c,i)=><span key={i} className="cite"><Ico n="lnk" s={10}/>{c}</span>)}</div>}
-            </div>}
-            <button onClick={onDone} className="btn btn-p w-full" style={{borderRadius:10,padding:'14px 0',fontSize:15,gap:10}}>
-              Open dashboard <Ico n="arr" s={16}/>
-            </button>
-          </div>}
-        </div>
-
-        <div style={{padding:'18px 46px 22px',borderTop:'1px solid var(--bd)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            {stepMeta.map(s=><div key={s.n} className={`sdot ${step===s.n?'on':step>s.n?'done':''}`} onClick={()=>step>s.n&&setStep(s.n)} style={{cursor:step>s.n?'pointer':'default',transition:'all .3s'}}/>)}
-          </div>
-          <span className="mono" style={{fontSize:10,color:'var(--t3)'}}>{stepMeta[step-1]?.label}</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── Dashboard ─────────────────────────────────────────────────────────────────
-const TopicCard = ({ t, active, onClick }) => {
-  const days = (Date.now()-new Date(t.updated_at||0))/86400000;
-  const dc = days<1?'dg':days<7?'db':days<30?'da':'dr';
-  return (
-    <div className={`tcard glass ${active?'active':''}`} style={{borderRadius:10,padding:'12px 14px',marginBottom:6,border:'1px solid var(--bd)'}} onClick={onClick}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-        <span className="mono" style={{fontSize:11,fontWeight:500,color:active?'var(--blu)':'var(--t1)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'82%'}}>{t.slug}</span>
-        <span className={`dot ${dc}`} style={{width:7,height:7,flexShrink:0}}/>
-      </div>
-      <div style={{display:'flex',gap:10,fontSize:10,color:'var(--t3)'}}>
-        <span style={{display:'flex',alignItems:'center',gap:3}}><Ico n="video" s={9}/>{t.video_count||0}v</span>
-        <span style={{display:'flex',alignItems:'center',gap:3}}><Ico n="db" s={9}/>{(t.chunks||0).toLocaleString()}</span>
-        {t.size_kb?<span className="mono">{(t.size_kb/1024).toFixed(1)}MB</span>:null}
-      </div>
-    </div>
-  );
-};
-
-const ChatMsg = ({ m }) => {
-  const u = m.role==='user';
-  return (
-    <div className="fade-up" style={{marginBottom:16,display:'flex',flexDirection:u?'row-reverse':'row',gap:9}}>
-      <div style={{width:26,height:26,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'"IBM Plex Mono",monospace',fontSize:9,border:'1px solid var(--bdm)',background:u?'rgba(59,130,246,.18)':'var(--elev)'}}>{u?'U':'AI'}</div>
-      <div style={{maxWidth:'78%'}}>
-        <div className={u?'bu-u':'bu-a'} style={{padding:'11px 14px'}}>
-          <p style={{fontSize:14,lineHeight:1.65,color:'var(--t1)',margin:0}}>{m.content}{m.streaming&&<span className="blink" style={{color:'var(--blu)',marginLeft:1}}>|</span>}</p>
-        </div>
-        {m.citations?.length>0&&<div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:7}}>{m.citations.map((c,i)=><span key={i} className="cite"><Ico n="lnk" s={10}/>{c}</span>)}</div>}
-      </div>
-    </div>
-  );
-};
-
-const Skel = () => <div className="glass" style={{borderRadius:10,padding:'12px 14px',marginBottom:6,border:'1px solid var(--bd)'}}><div className="sk" style={{height:11,width:'58%',marginBottom:8}}/><div className="sk" style={{height:9,width:'40%'}}/></div>;
-
-// ── Ingest Pipeline Visual ────────────────────────────────────────────────────
-const PIPE_STAGES = [
-  {icon:'🎬', label:'Video',      key:'video'},
-  {icon:'📝', label:'Transcript', key:'transcript'},
-  {icon:'🖼',  label:'Frames',    key:'frames'},
-  {icon:'⚡', label:'Vectors',   key:'vectors'},
-  {icon:'💾', label:'Local KB',  key:'local'},
-  {icon:'🧠', label:'Seed',      key:'seed'},
-];
-
-const IngestPipeline = ({ stage, pct, seedIp, running }) => {
-  const stageColors = [
-    'rgba(59,130,246,.9)',   // video — blue
-    'rgba(6,182,212,.9)',    // transcript — cyan
-    'rgba(139,92,246,.9)',   // frames — violet
-    'rgba(245,158,11,.9)',   // vectors — amber
-    'rgba(16,185,129,.9)',   // local — green
-    'rgba(16,185,129,.9)',   // seed — green
-  ];
-  return (
-    <div style={{borderRadius:12,border:'1px solid var(--bd)',padding:'14px 12px',background:'rgba(2,6,15,.55)'}}>
-      {/* Stage nodes */}
-      <div style={{display:'flex',alignItems:'center',gap:0,marginBottom:12}}>
-        {PIPE_STAGES.map((s,i)=>{
-          const isActive = stage===i && running;
-          const isDone   = stage>i || (stage===i && !running);
-          const isPending= stage<i;
-          const isSeed   = i===5;
-          const seedLabel= isSeed&&seedIp ? seedIp : s.label;
-          return (
-            <div key={s.key} style={{display:'flex',alignItems:'center',flex:1,flexDirection:'column',gap:0}}>
-              <div style={{display:'flex',alignItems:'center',width:'100%'}}>
-                {/* Flow line before */}
-                {i>0&&<div style={{flex:1,height:2,background:isDone||isActive
-                  ?`linear-gradient(90deg,${stageColors[i-1]},${stageColors[i]})`
-                  :'var(--bd)',transition:'background .6s ease',position:'relative',overflow:'hidden'}}>
-                  {isActive&&<div style={{position:'absolute',top:0,left:0,right:0,bottom:0,
-                    background:`linear-gradient(90deg,transparent,${stageColors[i]},transparent)`,
-                    animation:'shimmer 1.2s infinite',backgroundSize:'200% 100%'}}/>}
-                </div>}
-                {/* Node circle */}
-                <div style={{
-                  width:isSeed?32:26, height:isSeed?32:26, borderRadius:'50%', flexShrink:0,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:isSeed?14:12,
-                  border:`1px solid ${isDone?stageColors[i]:isActive?stageColors[i]:'var(--bd)'}`,
-                  background:isDone?`${stageColors[i].replace('.9','0.2')}`:isActive?`${stageColors[i].replace('.9','0.15')}`:'transparent',
-                  boxShadow:isActive?`0 0 10px ${stageColors[i].replace('.9','0.5')}`:'none',
-                  animation:isActive?'pulse-g 1.5s ease infinite':'none',
-                  transition:'all .4s ease',
-                  position:'relative',
-                }}>
-                  {isDone&&!isActive ? <span style={{fontSize:10,color:stageColors[i]}}>✓</span> : <span>{s.icon}</span>}
-                </div>
-                {/* Flow line after (not last) */}
-                {i<PIPE_STAGES.length-1&&<div style={{flex:1,height:2,background:isDone?stageColors[i]:'var(--bd)',transition:'background .6s ease'}}/>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Labels */}
-      <div style={{display:'flex',gap:0}}>
-        {PIPE_STAGES.map((s,i)=>{
-          const isDone = stage>i||(stage===i&&!running);
-          const isActive = stage===i&&running;
-          const isSeed = i===5;
-          const lbl = isSeed&&seedIp ? seedIp : s.label;
-          return (
-            <div key={s.key} style={{flex:1,textAlign:'center',fontFamily:'"IBM Plex Mono",monospace',
-              fontSize:isSeed?9:8,lineHeight:1.3,
-              color:isDone||isActive?'var(--t2)':'var(--t3)',
-              fontWeight:isActive?600:400,
-              transition:'color .3s',
-              overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',padding:'0 1px'}}>
-              {lbl}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Progress bar */}
-      {pct>0&&<div style={{marginTop:12,borderRadius:4,height:3,background:'var(--void)',overflow:'hidden'}}>
-        <div className={running?'bar-sh':''} style={{height:'100%',width:`${pct}%`,borderRadius:4,
-          transition:'width .5s ease',background:!running&&pct>0?'var(--grn)':undefined}}/>
-      </div>}
-
-      {/* Status text */}
-      <div style={{marginTop:8,fontSize:10,color:'var(--t2)',textAlign:'center',fontFamily:'"IBM Plex Mono",monospace',minHeight:14}}>
-        {running&&stage===0&&'Fetching source…'}
-        {running&&stage===1&&'Downloading transcript…'}
-        {running&&stage===2&&'Extracting & captioning frames…'}
-        {running&&stage===3&&'Embedding and indexing vectors…'}
-        {running&&stage===4&&'Writing to local KB…'}
-        {running&&stage===5&&`Syncing to Seed ${seedIp||''}…`}
-        {!running&&pct===100&&stage===5&&<span style={{color:'var(--grn)'}}>Stored locally + synced to Seed {seedIp}</span>}
-        {!running&&pct===100&&stage===4&&<span style={{color:'var(--grn)'}}>Stored locally in ~/Docs/KB/</span>}
-        {!running&&pct===0&&stage>=0&&'Ready'}
-      </div>
-    </div>
-  );
-};
-
-const Dashboard = () => {
-  const [live,setLive]     = useState(false);
-  const [topics,setTopics] = useState([]);
-  const [loading,setLoad]  = useState(true);
-  const [sel,setSel]       = useState(null);
-  const [msgs,setMsgs]     = useState([]);
-  const [input,setInput]   = useState('');
-  const [asking,setAsking] = useState(false);
-  const [inUrl,setInUrl]   = useState('');
-  const [inTopic,setInT]   = useState('');
-  const [inLog,setInLog]   = useState([]);
-  const [inPct,setInPct]   = useState(0);
-  const [ingst,setIngst]   = useState(false);
-  const [inStage,setInStage] = useState(-1); // -1=idle, 0-5=active stage
-  const [seed,setSeed]     = useState({connected:false,ip:null});
-  const [model,setModel]   = useState('all-MiniLM-L6-v2');
-  const chatEnd = useRef(null);
-  const inLogR  = useRef(null);
-  const lcls    = {info:'li',success:'ls',active:'la',warn:'lw'};
-
-  // Map log messages to pipeline stage index
-  const stageFromMsg = (msg) => {
-    const m = msg.toLowerCase();
-    if (m.includes('resolving') || m.includes('fetching metadata')) return 0;
-    if (m.includes('transcript') || m.includes('segments')) return 1;
-    if (m.includes('keyframe') || m.includes('captioning') || m.includes('frame')) return 2;
-    if (m.includes('embedding') || m.includes('indexed') || m.includes('hnsw') || m.includes('chunk')) return 3;
-    if (m.includes('.rvf') || m.includes('done')) return 4;
-    if (m.includes('seed') || m.includes('push') || m.includes('sync') || m.includes('10.0.0')) return 5;
-    return -1;
-  };
-
-  useEffect(()=>{ const c=async()=>{ try{const r=await fetch(`${API}/api/health`,{signal:AbortSignal.timeout(1800)});setLive(r.ok);}catch{setLive(false);} }; c(); const id=setInterval(c,5000); return()=>clearInterval(id); },[]);
-  useEffect(()=>{
-    const load=async()=>{
-      setLoad(true);
-      try {
-        const r=await fetch(`${API}/api/topics`); const d=await r.json();
-        setTopics(d.topics||[]); if((d.topics||[]).length>0&&!sel) setSel(d.topics[0].slug);
-        const s=await fetch(`${API}/api/status`); const sd=await s.json();
-        setSeed(sd.seed||{connected:false,ip:null}); setModel(sd.model||'all-MiniLM-L6-v2');
-      } catch {
-        const now = new Date();
-        const d=(n)=>new Date(now-n*86400000).toISOString();
-        const demo=[{slug:'reasoning-models-2026',video_count:5,chunks:1340,size_kb:5800,updated_at:d(1)},{slug:'karpathy-ml-lectures',video_count:8,chunks:2840,size_kb:11200,updated_at:d(0)},{slug:'sequoia-ai-report',video_count:2,chunks:480,size_kb:1900,updated_at:d(5)},{slug:'ai-agents-in-production',video_count:8,chunks:1740,size_kb:7100,updated_at:d(2)},{slug:'anthropic-interpretability',video_count:4,chunks:960,size_kb:3800,updated_at:d(3)}];
-        setTopics(demo); if(!sel)setSel('karpathy-ml-lectures');
-      } finally{setLoad(false);}
-    };
-    load();
-  },[live]);
-  useEffect(()=>{ chatEnd.current?.scrollIntoView({behavior:'smooth'}); },[msgs]);
-  useEffect(()=>{ if(inLogR.current) inLogR.current.scrollTop=inLogR.current.scrollHeight; },[inLog]);
-
-  const selData = topics.find(t=>t.slug===sel);
-  const addInLog=(msg,type='info')=>{
-    setInLog(p=>[...p,{msg,type,id:Date.now()+Math.random()}]);
-    const s=stageFromMsg(msg); if(s>=0) setInStage(s);
-  };
-
-  const handleAsk=async()=>{
-    if(!input.trim()||asking)return;
-    const q=input.trim(); setInput(''); setAsking(true);
-    const uid=Date.now(); setMsgs(p=>[...p,{id:uid,role:'user',content:q,citations:[]}]);
-    const aid=uid+1; setMsgs(p=>[...p,{id:aid,role:'assistant',content:'',streaming:true,citations:[]}]);
-    try {
-      const r=await fetch(`${API}/api/ask`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,topic:sel})});
-      const d=await r.json();
-      setMsgs(p=>p.map(m=>m.id===aid?{...m,content:d.answer,citations:d.citations||[],streaming:false}:m));
-      setAsking(false);
-    } catch {
-      const demo=`Based on the "${sel}" knowledge base, the most relevant passage appears at 12:34 in the primary source. The speaker explains the core mechanism in depth there. A complementary perspective appears at 31:07 with concrete examples.`;
-      let i=0; const t=setInterval(()=>{ if(i<demo.length) setMsgs(p=>p.map(m=>m.id===aid?{...m,content:demo.slice(0,++i)}:m)); else{clearInterval(t);setMsgs(p=>p.map(m=>m.id===aid?{...m,streaming:false,citations:[`${sel} @ 12:34`,`${sel} @ 31:07`]}:m));setAsking(false);} },14);
+          )}
+        </section>
+      );
     }
-  };
 
-  const handleIngest=()=>{
-    if(!inUrl.trim()||ingst)return;
-    setIngst(true);setInLog([]);setInPct(0);setInStage(0);
-    try {
-      const qs=new URLSearchParams({source:inUrl,topic:inTopic}).toString();
-      const es=new EventSource(`${API}/api/ingest/progress?${qs}`);
-      es.onmessage=e=>{ const d=JSON.parse(e.data); addInLog(d.message,d.level||'info'); if(d.progress!==undefined)setInPct(d.progress); if(d.done){es.close();setIngst(false);} };
-      es.onerror=()=>{ es.close(); simIngest(); };
-    } catch { simIngest(); }
-  };
-  const simIngest=()=>{
-    const seedIp = seed.connected ? seed.ip : null;
-    const seedSteps = seedIp ? [
-      [8700, `Pushing to Cognitum Seed ${seedIp}…`, 'active'],
-      [9400, 'Transferring .rvf (3.2 MB)…', 'active'],
-      [10200, `Seed indexed: 124 chunks · 58 frames`, 'success'],
-      [10500, `Synced to Seed ${seedIp}`, 'success'],
-    ] : [
-      [8700, 'Seed not configured — skipping push', 'warn'],
-    ];
-    const base=[
-      [250,'Resolving source…','info'],[750,'Fetching metadata','info'],
-      [1300,'Downloading transcript…','active'],[2100,'1,204 segments · 18,600 words','success'],
-      [2500,'Analysing frame variance…','active'],[3200,'Extracting 58 keyframes','info'],
-      [4000,'Captioning (Sonnet vision)…','active'],[5600,'58 / 58 frames captioned','success'],
-      [6000,'124 chunks @ 300 tokens','info'],[6800,'Embedding (all-MiniLM-L6-v2)…','active'],
-      [7600,'Indexed 124 vectors → HNSW','success'],[8000,'Wrote .rvf to ~/Docs/KB/','success'],
-      [8200,'Done · 124 chunks · 58 frames · 3.2 MB','success'],
-    ];
-    const steps = [...base, ...seedSteps];
-    const last = steps[steps.length-1][0];
-    steps.forEach(([ms,msg,type],i)=>setTimeout(()=>{
-      addInLog(msg,type);
-      setInPct(Math.min(100,Math.round((ms/last)*100)));
-      if(i===steps.length-1){ setIngst(false); setInStage(seedIp?5:4); }
-    },ms));
-  };
+    // ── Step 3: Ingest ──────────────────────────────────────────────────
 
-  const totalMb    = topics.reduce((s,t)=>s+(t.size_kb||0),0)/1024;
-  const totalChunks= topics.reduce((s,t)=>s+(t.chunks||0),0);
-  const selQs      = sel ? (SAMPLE_QS[sel]||[`Summarise the key ideas in ${sel}`,`What are the most surprising findings?`,`What practical steps does the speaker recommend?`]) : [];
+    function IngestStep({ topic, seedName, onDone }) {
+      const [events, setEvents] = useState([]);
+      const [pct, setPct] = useState(0);
+      const [phase, setPhase] = useState("Getting ready…");
+      const [videos, setVideos] = useState([]);
+      const [chunks, setChunks] = useState(0);
+      const [concepts, setConcepts] = useState(0);
+      const [stalled, setStalled] = useState(false);
+      const esRef = useRef(null);
+      const lastEvtAt = useRef(Date.now());
 
-  return (
-    <div style={{height:'100vh',display:'flex',flexDirection:'column'}}>
-      <header className="glass" style={{height:50,padding:'0 18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,zIndex:10,borderBottom:'1px solid var(--bd)'}}>
-        <div style={{display:'flex',alignItems:'center',gap:16}}>
-          <div style={{display:'flex',alignItems:'center',gap:9}}>
-            <div style={{width:28,height:28,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1D4ED8,#0E7490)'}}><Ico n="brain" s={14}/></div>
-            <span className="mono" style={{fontSize:13,fontWeight:600,letterSpacing:'-.01em'}}>learn-rv</span>
+      useEffect(() => {
+        const url = `${BRIDGE}/api/ingest/progress?source=${encodeURIComponent(topic.source)}&topic=${encodeURIComponent(topic.slug)}`;
+        const es = new EventSource(url);
+        esRef.current = es;
+        es.onmessage = evt => {
+          lastEvtAt.current = Date.now(); setStalled(false);
+          try {
+            const d = JSON.parse(evt.data);
+            setEvents(prev => [...prev, d]);
+            setPct(d.progress);
+            const m = d.message.toLowerCase();
+            if (m.includes("transcrib")) setPhase("Transcribing audio…");
+            else if (m.includes("embed")) setPhase("Distilling into vectors…");
+            else if (m.includes("index") || m.includes("hnsw")) setPhase("Building searchable index…");
+            else if (m.includes("push")) setPhase(`Pushing to ${seedName}…`);
+            else if (m.includes("download") || m.includes("fetch")) setPhase("Downloading videos…");
+            const tm = d.message.match(/(?:video|title|episode)[:\s]+([^,\n]{4,80})/i);
+            if (tm) setVideos(v => v.length < 24 && !v.includes(tm[1]) ? [...v, tm[1].trim()] : v);
+            const cm = d.message.match(/(\d[\d,]*)\s*chunks?/i);
+            if (cm) setChunks(parseInt(cm[1].replace(/,/g, ""), 10));
+            if (d.done) {
+              es.close();
+              const fv = Math.max(videos.length, 1);
+              const fc = chunks || fv * 80;
+              setTimeout(() => onDone({ videos: fv, chunks: fc, concepts: Math.floor(fc * 0.6) }), 1000);
+            }
+          } catch {}
+        };
+        es.onerror = () => es.close();
+        return () => es.close();
+      }, []);
+
+      useEffect(() => {
+        const id = setInterval(() => {
+          if (Date.now() - lastEvtAt.current > 30000) setStalled(true);
+        }, 5000);
+        return () => clearInterval(id);
+      }, []);
+
+      return (
+        <section className="fade-in">
+          <div className="mono text-[11px] uppercase tracking-widest text-amber-300 flex items-center gap-2 mb-3">
+            <span className="inline-block w-4 h-px bg-amber-300" />
+            BUILDING YOUR {topic.title.toUpperCase()} EXPERT
           </div>
-          <div style={{height:18,width:1,background:'var(--bd)'}}/>
-          <span style={{fontSize:12,color:'var(--t3)',display:'flex',alignItems:'center',gap:5}}><Ico n="fld" s={11}/>{topics.length} topics</span>
-        </div>
-        <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12}}>
-            <span style={{color:'var(--t3)'}}>{live?'Live':'Offline'}</span>
-            <span className={`dot ${live?'dg':'dr'}`} style={{width:7,height:7}}/>
-          </div>
-          <div style={{height:18,width:1,background:'var(--bd)'}}/>
-          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12,padding:'4px 10px',borderRadius:7,border:'1px solid var(--bd)',background:seed.connected?'rgba(16,185,129,.07)':'transparent'}}>
-            <Ico n="cpu" s={12}/><span style={{color:seed.connected?'var(--grn)':'var(--t3)'}}>{seed.connected?`Seed · ${seed.ip}`:'Seed offline'}</span>
-            <span className={`dot ${seed.connected?'dg':'dr'}`} style={{width:6,height:6}}/>
-          </div>
-        </div>
-      </header>
+          <h2 className="display text-[36px] sm:text-[44px] leading-[1.1] text-slate-50 mb-2">
+            Your Seed is <em className="text-amber-300 italic">studying</em>.
+          </h2>
+          <p className="text-slate-400 text-[15px] mb-10 max-w-2xl">
+            Grab a coffee. {seedName} is fetching videos, transcribing every word, and distilling them into vectors. About ten minutes for years of expertise.
+          </p>
 
-      <div style={{flex:1,display:'grid',gridTemplateColumns:'230px 1fr 286px',overflow:'hidden'}}>
-        <div style={{borderRight:'1px solid var(--bd)',padding:'12px 10px',overflowY:'auto'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingLeft:5,paddingRight:5,marginBottom:10}}>
-            <span className="mono" style={{fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--t3)'}}>Topics</span>
-            <button className="btn btn-g" style={{borderRadius:6,padding:4,border:'1px solid var(--bd)'}}><Ico n="plus" s={13}/></button>
-          </div>
-          {loading?[1,2,3,4].map(i=><Skel key={i}/>):topics.map(t=><TopicCard key={t.slug} t={t} active={sel===t.slug} onClick={()=>setSel(t.slug)}/>)}
-        </div>
-
-        <div style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
-          {sel&&<div style={{padding:'10px 20px',borderBottom:'1px solid var(--bd)',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
-            <Ico n="msg" s={13}/><span className="mono" style={{fontSize:12,color:'var(--blu)'}}>{sel}</span>
-            {selData&&<span style={{fontSize:11,color:'var(--t3)'}}>· {selData.chunks||0} chunks · {selData.video_count||0} videos</span>}
-          </div>}
-          <div style={{flex:1,overflowY:'auto',padding:'20px'}}>
-            {msgs.length===0&&sel&&(
-              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:22,paddingBottom:60}}>
-                <div style={{textAlign:'center'}}>
-                  <div style={{fontSize:36,marginBottom:12}}>💬</div>
-                  <div style={{fontWeight:600,fontSize:17,marginBottom:8}}>Ask anything about {sel}</div>
-                  <p style={{fontSize:13,color:'var(--t2)',lineHeight:1.65,maxWidth:380}}>I can answer questions, find specific moments, summarise key ideas, compare concepts across videos — all with timestamp citations.</p>
-                </div>
-                <div style={{display:'flex',flexDirection:'column',gap:8,width:'100%',maxWidth:460}}>
-                  {selQs.map(q=><button key={q} onClick={()=>setInput(q)} className="btn btn-g" style={{borderRadius:9,padding:'11px 16px',fontSize:13,justifyContent:'flex-start',textAlign:'left'}}><span style={{color:'var(--cyn)',marginRight:10,flexShrink:0}}>→</span>{q}</button>)}
-                </div>
+          <div className="grid lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-5">
+              <ProgressRing pct={pct} phase={phase} />
+              <div className="mt-8 grid grid-cols-3 gap-3">
+                <StatChip label="videos" value={videos.length} />
+                <StatChip label="chunks" value={chunks} />
+                <StatChip label="vectors" value={Math.floor(chunks * 0.6)} />
               </div>
+              {stalled && (
+                <div className="mt-6 px-4 py-3 rounded bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[13px]">
+                  Still working — large videos can take a few minutes each. Leave this open.
+                </div>
+              )}
+            </div>
+            <div className="lg:col-span-7">
+              <div className="mono text-[10px] uppercase tracking-widest text-slate-500 mb-3">indexed so far</div>
+              {videos.length === 0 ? (
+                <div className="border border-slate-800 border-dashed rounded p-8 text-center text-slate-500 text-sm">
+                  Videos will appear here as your Seed processes them…
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {videos.map((v, i) => (
+                    <div key={i} className="border border-slate-800 bg-slate-900/40 rounded p-3 flex items-start gap-3 fade-in">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 flex-none" style={{ animation: "pulse 2s ease-in-out infinite" }} />
+                      <div className="text-slate-200 text-[13px] leading-snug">{v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <details className="mt-6">
+                <summary className="mono text-[10px] uppercase tracking-widest text-slate-600 hover:text-slate-400 cursor-pointer">raw progress log</summary>
+                <div className="mt-3 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded p-3 mono text-[11px] space-y-1">
+                  {events.slice(-30).map((e, i) => (
+                    <div key={i} className={
+                      e.level === "warn" ? "text-amber-400" :
+                      e.level === "success" ? "text-emerald-400" :
+                      e.level === "active" ? "text-amber-200" : "text-slate-500"
+                    }>{e.message}</div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    function ProgressRing({ pct, phase }) {
+      const r = 70, c = 2 * Math.PI * r;
+      const offset = c - (pct / 100) * c;
+      return (
+        <div className="flex items-center justify-center">
+          <div className="relative">
+            <svg width="180" height="180" viewBox="0 0 180 180" aria-hidden>
+              <circle cx="90" cy="90" r={r} fill="none" stroke="#1e293b" strokeWidth="6" />
+              <circle cx="90" cy="90" r={r} fill="none" stroke="#fcd34d" strokeWidth="6"
+                strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset}
+                transform="rotate(-90 90 90)"
+                style={{ transition: "stroke-dashoffset 0.5s ease" }} />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <div className="display text-[44px] text-slate-50 leading-none">{pct}<span className="text-slate-500 text-2xl">%</span></div>
+              <div className="mt-2 mono text-[10px] uppercase tracking-widest text-amber-300 text-center px-2 max-w-[140px]">{phase}</div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function StatChip({ label, value }) {
+      return (
+        <div className="border border-slate-800 bg-slate-900/40 rounded px-3 py-3 text-center">
+          <div className="display text-[26px] text-amber-300 leading-none">{value.toLocaleString()}</div>
+          <div className="mono text-[9px] uppercase tracking-widest text-slate-500 mt-2">{label}</div>
+        </div>
+      );
+    }
+
+    // ── Step 4: Wow ─────────────────────────────────────────────────────
+
+    function WowCard({ topic, seedName, stats, onAsk }) {
+      return (
+        <section className="border border-emerald-400/30 rounded-lg p-10 bg-gradient-to-br from-emerald-400/[0.06] via-slate-900/40 to-amber-400/[0.04] relative overflow-hidden fade-in">
+          <div className="absolute -top-20 -right-20 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center font-bold text-xl">✓</div>
+            <div className="mono text-[11px] uppercase tracking-widest text-emerald-300">INGEST COMPLETE</div>
+          </div>
+          <h2 className="display text-[40px] sm:text-[52px] leading-[1.05] text-slate-50 mb-3">
+            {seedName} now <em className="text-emerald-300 italic">knows</em> {topic.title.toLowerCase()}.
+          </h2>
+          <p className="text-slate-300 text-[16px] leading-relaxed mb-8 max-w-xl">
+            Ask it anything. It cites every source — so when it tells you something, you can click straight to the timestamp and verify.
+          </p>
+          <div className="grid sm:grid-cols-3 gap-3 mb-10">
+            <BigStat label="videos processed" value={stats.videos} />
+            <BigStat label="knowledge chunks" value={stats.chunks} />
+            <BigStat label="vectors indexed" value={stats.concepts} />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button onClick={onAsk} className="inline-flex items-center justify-center gap-2 px-7 py-4 bg-emerald-400 text-slate-950 font-semibold text-[16px] hover:bg-emerald-300 transition rounded">
+              Ask {seedName} my first question →
+            </button>
+            <button onClick={() => window.location.reload()}
+              className="inline-flex items-center justify-center gap-2 px-7 py-4 border border-slate-700 text-slate-200 font-medium hover:border-amber-300 hover:text-amber-300 transition rounded">
+              Build another expert
+            </button>
+          </div>
+          <div className="mt-6 mono text-[10px] uppercase tracking-widest text-slate-600">
+            stored on {seedName} · ~/Docs/KB/{topic.slug}.rvf
+          </div>
+        </section>
+      );
+    }
+
+    function BigStat({ label, value }) {
+      return (
+        <div className="border border-slate-800 bg-slate-950/60 rounded px-5 py-5">
+          <div className="display text-[40px] text-emerald-300 leading-none">{value.toLocaleString()}</div>
+          <div className="mono text-[10px] uppercase tracking-widest text-slate-500 mt-2">{label}</div>
+        </div>
+      );
+    }
+
+    // ── Step 5: Chat ────────────────────────────────────────────────────
+
+    function ChatStep({ topics, seedName, initialTopic, initialQuestion }) {
+      const [topic, setTopic] = useState(initialTopic || topics[0]?.slug || "");
+      const [q, setQ] = useState(initialQuestion);
+      const [busy, setBusy] = useState(false);
+      const [turns, setTurns] = useState([]);
+
+      const ask = async () => {
+        if (!q || !topic) return;
+        setBusy(true);
+        try {
+          const res = await fetch(`${BRIDGE}/api/ask`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: q, topic }),
+          });
+          const data = await res.json();
+          setTurns(prev => [...prev, { q, a: data.answer ?? data.error ?? "(no answer)", citations: data.citations ?? [] }]);
+          setQ("");
+        } finally { setBusy(false); }
+      };
+
+      return (
+        <section className="fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="display text-[32px] sm:text-[40px] leading-[1.1] text-slate-50">Ask {seedName}.</h2>
+            {topics.length > 1 && (
+              <select value={topic} onChange={e => setTopic(e.target.value)}
+                className="px-3 py-2 bg-slate-950 border border-slate-800 text-slate-200 text-sm rounded mono">
+                {topics.map(t => <option key={t.slug} value={t.slug}>{t.slug}</option>)}
+              </select>
             )}
-            {msgs.map(m=><ChatMsg key={m.id} m={m}/>)}
-            <div ref={chatEnd}/>
           </div>
-          <div style={{padding:'12px 20px',borderTop:'1px solid var(--bd)',flexShrink:0}}>
-            <div style={{display:'flex',gap:8}}>
-              <input className="field flex-1" style={{borderRadius:11,padding:'11px 16px',fontSize:14}} placeholder={sel?`Ask about ${sel}…`:'Select a topic first'} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&handleAsk()} disabled={!sel}/>
-              <button onClick={handleAsk} disabled={!input.trim()||asking} className="btn btn-p" style={{borderRadius:11,padding:'11px 16px',opacity:(!input.trim()||asking)?.45:1}}>{asking?<Ico n="ld" s={16} cls="spin"/>:<Ico n="send" s={16}/>}</button>
+          {turns.length === 0 && initialQuestion && (
+            <div className="mb-6 px-4 py-3 rounded bg-amber-300/[0.05] border border-amber-300/20 text-amber-200 text-sm">
+              ✦ Pre-filled a good starter question. Edit it or hit Ask.
             </div>
-            <div className="mono" style={{marginTop:7,fontSize:10,color:'var(--t3)',textAlign:'center'}}>Enter to send · every answer includes timestamp citations</div>
-          </div>
-        </div>
-
-        <div style={{borderLeft:'1px solid var(--bd)',padding:'14px',overflowY:'auto',display:'flex',flexDirection:'column',gap:13}}>
-          <span className="mono" style={{fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--t3)'}}>Ingest</span>
-          <div><label className="mono" style={{fontSize:9,color:'var(--t3)',letterSpacing:'.06em',display:'block',marginBottom:6,textTransform:'uppercase'}}>Source URL</label><input className="field mono" style={{borderRadius:8,padding:'9px 12px',fontSize:11}} placeholder="https://youtube.com/…" value={inUrl} onChange={e=>setInUrl(e.target.value)}/></div>
-          <div><label className="mono" style={{fontSize:9,color:'var(--t3)',letterSpacing:'.06em',display:'block',marginBottom:6,textTransform:'uppercase'}}>Topic (optional)</label><input className="field mono" style={{borderRadius:8,padding:'9px 12px',fontSize:11}} placeholder="my-topic-slug" value={inTopic} onChange={e=>setInT(e.target.value)}/></div>
-          <button onClick={handleIngest} disabled={!inUrl.trim()||ingst} className="btn btn-p" style={{borderRadius:9,padding:'10px',fontSize:13,gap:8,opacity:(!inUrl.trim()||ingst)?.45:1}}>{ingst?<><Ico n="ld" s={14} cls="spin"/>Processing…</>:<><Ico n="upl" s={14}/>Start ingest</>}</button>
-
-          {/* Visual pipeline — shown when ingest is running or complete */}
-          {inStage>=0&&<IngestPipeline stage={inStage} pct={inPct} seedIp={seed.ip} running={ingst}/>}
-
-          {/* Compact log */}
-          {inLog.length>0&&<div>
-            <div className="mono" style={{fontSize:9,letterSpacing:'.06em',color:'var(--t3)',marginBottom:6,textTransform:'uppercase'}}>Log</div>
-            <div className="term glass" style={{borderRadius:9,padding:'8px 12px',maxHeight:160,overflow:'hidden'}}>
-              <div ref={inLogR} style={{maxHeight:150,overflowY:'auto'}}>
-                {inLog.map(e=><div key={e.id} className={`log-l ${lcls[e.type]||'li'}`}><span style={{color:'var(--t3)',marginRight:6}}>›</span>{e.msg}</div>)}
-                {ingst&&<div className="log-l la tcur" style={{opacity:.6}}/>}
+          )}
+          <div className="space-y-4 mb-6">
+            {turns.map((t, i) => (
+              <div key={i} className="border border-slate-800 bg-slate-900/40 rounded p-5">
+                <div className="mono text-[10px] uppercase tracking-widest text-slate-500 mb-1">YOU</div>
+                <div className="text-slate-100 mb-4">{t.q}</div>
+                <div className="mono text-[10px] uppercase tracking-widest text-amber-300 mb-1">{seedName.toUpperCase()}</div>
+                <div className="text-slate-200 whitespace-pre-wrap leading-relaxed">{t.a}</div>
+                {t.citations.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-800">
+                    <div className="mono text-[10px] uppercase tracking-widest text-emerald-300 mb-2">
+                      ✦ cited from {t.citations.length} {t.citations.length === 1 ? "source" : "sources"}
+                    </div>
+                    <ul className="space-y-1.5 text-sm text-slate-400">
+                      {t.citations.map((c, j) => <li key={j}>· {c}</li>)}
+                    </ul>
+                  </div>
+                )}
               </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input value={q} onChange={e => setQ(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !busy && ask()}
+              placeholder={`Ask ${seedName} anything…`} disabled={busy}
+              className="flex-1 px-4 py-3 bg-slate-950 border border-slate-800 text-slate-100 rounded" />
+            <button onClick={ask} disabled={busy || !q || !topic}
+              className="px-6 py-3 bg-amber-300 text-slate-950 font-semibold hover:bg-amber-200 disabled:opacity-50 transition rounded">
+              {busy ? "…" : "Ask"}
+            </button>
+          </div>
+          {turns.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+              <button onClick={() => window.location.reload()}
+                className="mono text-[11px] uppercase tracking-widest text-slate-500 hover:text-amber-300 transition">
+                ← Build another expert
+              </button>
             </div>
-          </div>}
-          <div style={{height:1,background:'var(--bd)',margin:'2px 0'}}/>
-          <span className="mono" style={{fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--t3)'}}>Commands</span>
-          {[{cmd:'learn list',desc:'Browse all topics'},{cmd:'learn ask <topic> "…"',desc:'Query from the CLI'},{cmd:'learn quiz <topic>',desc:'Spaced-repetition flashcards'},{cmd:'learn push <topic>',desc:'Sync to Cognitum Seed'},{cmd:'learn doctor',desc:'Check environment & deps'},{cmd:'learn ui',desc:'Start this dashboard'}].map(a=>(
-            <div key={a.cmd} className="glass" style={{borderRadius:8,padding:'9px 12px',border:'1px solid var(--bd)'}}><div className="mono" style={{fontSize:10,color:'var(--cyn)',marginBottom:2}}>{a.cmd}</div><div style={{fontSize:11,color:'var(--t3)'}}>{a.desc}</div></div>
-          ))}
-        </div>
-      </div>
+          )}
+        </section>
+      );
+    }
 
-      <div className="mono" style={{height:27,borderTop:'1px solid var(--bd)',padding:'0 18px',display:'flex',alignItems:'center',gap:18,fontSize:9,color:'var(--t3)',background:'var(--void)',flexShrink:0}}>
-        <span style={{display:'flex',alignItems:'center',gap:5}}><Ico n="db" s={9}/>{totalMb.toFixed(1)} MB</span>
-        <span style={{display:'flex',alignItems:'center',gap:5}}><Ico n="bolt" s={9}/>{totalChunks.toLocaleString()} chunks</span>
-        <span style={{display:'flex',alignItems:'center',gap:5}}><Ico n="star" s={9}/>{model}</span>
-        <span style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:5}}><Ico n="play" s={9}/>learn-rv v0.2.11 · May 2026</span>
-      </div>
-    </div>
-  );
-};
+    // ── Footer ──────────────────────────────────────────────────────────
 
-const App = () => {
-  const [ob,setOb] = useState(()=>!localStorage.getItem('learn-rv-v3'));
-  const done = () => { localStorage.setItem('learn-rv-v3','1'); setOb(false); };
-  return ob ? <Onboarding onDone={done}/> : <Dashboard/>;
-};
+    function Footer() {
+      return (
+        <footer className="mt-12 py-8 border-t border-slate-800">
+          <div className="max-w-4xl mx-auto px-5 sm:px-6 flex flex-wrap items-center justify-between gap-4 mono text-[11px] uppercase tracking-widest text-slate-500">
+            <span>learn-rv {APP_VERSION} · your hardware, your data</span>
+            <a href="https://learner-rv-site.vercel.app" target="_blank" className="hover:text-amber-300 transition">learn more →</a>
+          </div>
+        </footer>
+      );
+    }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-</script>
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
 </body>
 </html>
