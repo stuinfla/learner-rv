@@ -22,7 +22,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.17"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.87"
 license = "PolyForm-Noncommercial-1.0.0"
