@@ -1077,6 +1077,10 @@ mod tests {
 
     #[test]
     fn select_synthesizer_with_empty_env_var_documents_current_behavior() {
+        // Serialize with other env-mutating tests: this test sets a process-global
+        // env var that select_synthesizer() reads, so without the lock it races
+        // (and intermittently breaks) the default-branch test on parallel runners.
+        let _lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         // Set the env var to empty string — is_ok() returns true for any set value.
         let _guard = EnvGuard::set("LEARN_SYNTH_LOCAL", "");
 
