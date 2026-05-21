@@ -143,12 +143,22 @@ async fn list_topics(State(state): State<Arc<AppState>>) -> Json<Value> {
 }
 
 async fn read_topic_stats(kb_root: &Utf8PathBuf, slug: &str) -> (usize, u64) {
-    let manifest_path = kb_root.join(format!("{slug}.manifest.json"));
-    if let Ok(bytes) = tokio::fs::read(&manifest_path).await {
+    // The ingest pipeline writes `<slug>.meta.json`, NOT `<slug>.manifest.json`.
+    // Its shape is { "dimension": N, "chunks": { "<hash>": { "video_id": ..., ... } } }.
+    // chunk count = number of entries; video count = unique video_ids.
+    let meta_path = kb_root.join(format!("{slug}.meta.json"));
+    if let Ok(bytes) = tokio::fs::read(&meta_path).await {
         if let Ok(v) = serde_json::from_slice::<Value>(&bytes) {
-            let videos = v["videos"].as_array().map(|a| a.len()).unwrap_or(0);
-            let chunks = v["total_chunks"].as_u64().unwrap_or(0);
-            return (videos, chunks);
+            if let Some(chunks) = v["chunks"].as_object() {
+                let chunk_count = chunks.len() as u64;
+                let mut videos = std::collections::HashSet::new();
+                for chunk in chunks.values() {
+                    if let Some(vid) = chunk["video_id"].as_str() {
+                        videos.insert(vid.to_string());
+                    }
+                }
+                return (videos.len(), chunk_count);
+            }
         }
     }
     (0, 0)
